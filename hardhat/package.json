@@ -9,7 +9,12 @@
     "test": "npm run sync:contract && hardhat test",
     "clean": "hardhat clean",
     "deploy": "npm run sync:contract && hardhat run scripts/deploy.ts",
-    "ignition:deploy": "npm run sync:contract && hardhat ignition deploy ignition/modules/Crowdfunding.ts"
+    "ignition:deploy": "npm run sync:contract && hardhat ignition deploy ignition/modules/Crowdfunding.ts",
+    "campaign:create": "npm run sync:contract && hardhat run scripts/create-campaign.ts",
+    "campaign:donate": "npm run sync:contract && hardhat run scripts/donate.ts",
+    "campaign:close": "npm run sync:contract && hardhat run scripts/close-campaign.ts",
+    "campaign:withdraw": "npm run sync:contract && hardhat run scripts/withdraw.ts",
+    "balances": "npm run sync:contract && hardhat run scripts/check-balances.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.15",
