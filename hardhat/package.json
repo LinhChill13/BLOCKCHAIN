@@ -1,0 +1,27 @@
+{
+  "name": "crowdfunding-hardhat",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync:contract": "node scripts/sync-contract.mjs",
+    "compile": "npm run sync:contract && hardhat compile",
+    "test": "npm run sync:contract && hardhat test",
+    "clean": "hardhat clean",
+    "deploy": "npm run sync:contract && hardhat run scripts/deploy.ts",
+    "ignition:deploy": "npm run sync:contract && hardhat ignition deploy ignition/modules/Crowdfunding.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.15",
+    "@nomicfoundation/hardhat-ignition": "^3.1.8",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",
+    "@types/chai": "^5.2.3",
+    "@types/mocha": ">=10.0.10",
+    "@types/node": "^22.8.5",
+    "chai": "^6.2.2",
+    "ethers": "^6.14.0",
+    "hardhat": "^3.12.0",
+    "mocha": "^11.0.0",
+    "typescript": "~6.0.3"
+  }
+}
