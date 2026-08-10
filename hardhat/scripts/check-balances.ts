@@ -49,7 +49,7 @@ try {
       activeRequestId: requestId.toString(),
       amountEth: ethers.formatEther(request.amount),
       evidenceHash: request.evidenceHash,
-      status: ["Pending", "Approved", "Withdrawn"][Number(request.status)]
+      status: ["Pending", "Approved", "Rejected", "Withdrawn", "Cancelled"][Number(request.status)]
     }]);
   } else {
     console.log("No active disbursement request.");

@@ -203,7 +203,7 @@ describe("Crowdfunding", function () {
     const balanceAfter = await ethers.provider.getBalance(beneficiary.address);
     expect(balanceAfter).to.be.greaterThan(balanceBefore);
     expect((await crowdfunding.getCampaign(0)).totalWithdrawn).to.equal(REQUEST_AMOUNT);
-    expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(2n);
+    expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(3n);
     expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(0n);
   });
 
@@ -216,6 +216,42 @@ describe("Crowdfunding", function () {
 
     const remainingAmount = DONATION_AMOUNT - REQUEST_AMOUNT;
     await crowdfunding.connect(beneficiary).createDisbursementRequest(0, remainingAmount, EVIDENCE_HASH);
+    expect(await crowdfunding.getDisbursementRequestCount(0)).to.equal(2n);
+  });
+
+  it("TC-12: verifier có thể từ chối request pending và beneficiary tạo request mới", async function () {
+    const { crowdfunding, beneficiary, verifier, stranger, fundCampaign } = await deployCampaignFixture();
+    await fundCampaign();
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+
+    await expect(crowdfunding.connect(stranger).rejectDisbursement(0, 1)).to.be.revertedWith(
+      "Only campaign verifier can reject",
+    );
+    await expect(crowdfunding.connect(verifier).rejectDisbursement(0, 1))
+      .to.emit(crowdfunding, "DisbursementRejected")
+      .withArgs(0n, 1n, verifier.address);
+    expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(2n);
+    expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(0n);
+
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    expect(await crowdfunding.getDisbursementRequestCount(0)).to.equal(2n);
+  });
+
+  it("TC-13: beneficiary có thể hủy request pending và tạo request mới", async function () {
+    const { crowdfunding, beneficiary, stranger, fundCampaign } = await deployCampaignFixture();
+    await fundCampaign();
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+
+    await expect(crowdfunding.connect(stranger).cancelDisbursement(0, 1)).to.be.revertedWith(
+      "Only beneficiary can cancel",
+    );
+    await expect(crowdfunding.connect(beneficiary).cancelDisbursement(0, 1))
+      .to.emit(crowdfunding, "DisbursementCancelled")
+      .withArgs(0n, 1n, beneficiary.address);
+    expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(4n);
+    expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(0n);
+
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
     expect(await crowdfunding.getDisbursementRequestCount(0)).to.equal(2n);
   });
 });

@@ -14,7 +14,8 @@ Fixture dùng năm ví local: tổ chức/creator, beneficiary, donor, verifier 
 | Donation & tổ chức | Donor đóng góp thành công; chặn donation 0, campaign đóng/hết hạn; chỉ creator được đóng campaign. |
 | Request | Chỉ beneficiary tạo request; bắt buộc `amount > 0`, `evidenceHash` khác 0 và amount không vượt số dư chưa giải ngân; chỉ một request đang xử lý. |
 | Verifier | Chỉ ví verifier của campaign có thể duyệt request `Pending`; không thể duyệt lại request đã duyệt. |
+| Từ chối/hủy | Verifier có thể từ chối request `Pending`; beneficiary có thể hủy request `Pending`; cả hai giải phóng campaign để tạo request mới. |
 | Withdraw | Không thể rút khi chưa duyệt hoặc sai ví; beneficiary nhận đúng amount được duyệt, `totalWithdrawn` tăng và request chuyển `Withdrawn`. |
 | Nhiều đợt | Sau một lần rút, beneficiary tạo được request tiếp theo trong số dư còn lại. |
 
-Các test event đảm bảo chuỗi bằng chứng `DisbursementRequested` → `DisbursementApproved` → `FundsWithdrawn` được ghi công khai và theo cùng `campaignId`/`requestId`.
+Các test event đảm bảo mọi nhánh đều có dấu vết công khai theo cùng `campaignId`/`requestId`: `DisbursementRequested` → `DisbursementApproved` → `FundsWithdrawn`, hoặc `DisbursementRejected`, hoặc `DisbursementCancelled`.

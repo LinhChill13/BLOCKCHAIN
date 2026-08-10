@@ -11,7 +11,7 @@ import {
 } from "@/lib/contract";
 import { dateTime, eth, shortAddress } from "@/lib/format";
 
-const requestStatus = ["Chờ verifier duyệt", "Đã được duyệt", "Đã giải ngân"];
+const requestStatus = ["Chờ verifier duyệt", "Đã được duyệt", "Đã bị từ chối", "Đã giải ngân", "Đã hủy"];
 
 export default function CampaignDetailPage() {
   const params = useParams<{ id: string }>();
@@ -69,6 +69,14 @@ export default function CampaignDetailPage() {
     writeContract({ address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "approveDisbursement", args: [campaignId, activeRequestId] });
   }
 
+  function rejectRequest() {
+    writeContract({ address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "rejectDisbursement", args: [campaignId, activeRequestId] });
+  }
+
+  function cancelRequest() {
+    writeContract({ address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "cancelDisbursement", args: [campaignId, activeRequestId] });
+  }
+
   function withdraw() {
     writeContract({ address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "withdraw", args: [campaignId, activeRequestId] });
   }
@@ -101,7 +109,7 @@ export default function CampaignDetailPage() {
         </aside>
       </div>
       <section className="transactions"><div className="section-heading"><div><p className="eyebrow">QUY TRÌNH MINH BẠCH</p><h2>Yêu cầu giải ngân</h2><p className="muted">Beneficiary công bố số tiền và hash bằng chứng; verifier của campaign duyệt on-chain; sau đó beneficiary mới rút được đúng số tiền đã duyệt.</p></div></div>
-        {activeRequestId > 0n && request ? <article className="detail-card"><p className="eyebrow">REQUEST #{activeRequestId.toString()}</p><h3>{requestStatus[request.status] ?? "Không xác định"}</h3><dl className="detail-list"><div><dt>Số tiền</dt><dd>{formatEther(request.amount)} ETH</dd></div><div><dt>Evidence hash</dt><dd className="hash-value">{request.evidenceHash}</dd></div></dl>{isVerifier && request.status === 0 && <button className="button button-primary" onClick={approveRequest} disabled={isPending}>Duyệt yêu cầu</button>}{isBeneficiary && request.status === 1 && <button className="button button-primary" onClick={withdraw} disabled={isPending}>Rút {formatEther(request.amount)} ETH đã duyệt</button>}</article> : isBeneficiary && available > 0n ? <form className="form-card disbursement-form" onSubmit={createRequest}><label>Số ETH cần giải ngân<input type="number" min="0.000001" step="0.001" max={formatEther(available)} value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} required /></label><label>Evidence hash (bytes32)<input value={evidenceHash} onChange={(e) => setEvidenceHash(e.target.value)} placeholder="0x…" required /></label><p className="muted">Hash phải đại diện cho hồ sơ/bằng chứng đã công khai, ví dụ hash của CID IPFS.</p>{requestError && <p className="form-error">{requestError}</p>}<button className="button button-primary" disabled={isPending}>Tạo yêu cầu giải ngân</button></form> : <div className="empty-state">Chưa có yêu cầu đang xử lý. Chỉ beneficiary có thể tạo yêu cầu khi còn tiền khả dụng.</div>}
+        {activeRequestId > 0n && request ? <article className="detail-card"><p className="eyebrow">REQUEST #{activeRequestId.toString()}</p><h3>{requestStatus[request.status] ?? "Không xác định"}</h3><dl className="detail-list"><div><dt>Số tiền</dt><dd>{formatEther(request.amount)} ETH</dd></div><div><dt>Evidence hash</dt><dd className="hash-value">{request.evidenceHash}</dd></div></dl>{isVerifier && request.status === 0 && <><button className="button button-primary" onClick={approveRequest} disabled={isPending}>Duyệt yêu cầu</button><button className="button button-secondary" onClick={rejectRequest} disabled={isPending}>Từ chối yêu cầu</button></>}{isBeneficiary && request.status === 0 && <button className="button button-secondary" onClick={cancelRequest} disabled={isPending}>Hủy yêu cầu</button>}{isBeneficiary && request.status === 1 && <button className="button button-primary" onClick={withdraw} disabled={isPending}>Rút {formatEther(request.amount)} ETH đã duyệt</button>}</article> : isBeneficiary && available > 0n ? <form className="form-card disbursement-form" onSubmit={createRequest}><label>Số ETH cần giải ngân<input type="number" min="0.000001" step="0.001" max={formatEther(available)} value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} required /></label><label>Evidence hash (bytes32)<input value={evidenceHash} onChange={(e) => setEvidenceHash(e.target.value)} placeholder="0x…" required /></label><p className="muted">Hash phải đại diện cho hồ sơ/bằng chứng đã công khai, ví dụ hash của CID IPFS.</p>{requestError && <p className="form-error">{requestError}</p>}<button className="button button-primary" disabled={isPending}>Tạo yêu cầu giải ngân</button></form> : <div className="empty-state">Chưa có yêu cầu đang xử lý. Chỉ beneficiary có thể tạo yêu cầu khi còn tiền khả dụng.</div>}
         {(writeError || receipt.isError) && <p className="form-error">{writeError?.message || "Transaction thất bại."}</p>}
         {receipt.isSuccess && <p className="form-success">Transaction đã xác nhận. <button className="inline-button" onClick={refresh}>Cập nhật dữ liệu</button></p>}
       </section>

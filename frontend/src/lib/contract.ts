@@ -29,6 +29,14 @@ export const crowdfundingAbi = [
     inputs: [{ name: "campaignId", type: "uint256" }, { name: "requestId", type: "uint256" }], outputs: []
   },
   {
+    type: "function", name: "rejectDisbursement", stateMutability: "nonpayable",
+    inputs: [{ name: "campaignId", type: "uint256" }, { name: "requestId", type: "uint256" }], outputs: []
+  },
+  {
+    type: "function", name: "cancelDisbursement", stateMutability: "nonpayable",
+    inputs: [{ name: "campaignId", type: "uint256" }, { name: "requestId", type: "uint256" }], outputs: []
+  },
+  {
     type: "function", name: "withdraw", stateMutability: "nonpayable",
     inputs: [{ name: "campaignId", type: "uint256" }, { name: "requestId", type: "uint256" }], outputs: []
   },
@@ -66,6 +74,18 @@ export const crowdfundingAbi = [
     type: "event", name: "DisbursementApproved", inputs: [
       { indexed: true, name: "campaignId", type: "uint256" }, { indexed: true, name: "requestId", type: "uint256" },
       { indexed: true, name: "verifier", type: "address" }
+    ]
+  },
+  {
+    type: "event", name: "DisbursementRejected", inputs: [
+      { indexed: true, name: "campaignId", type: "uint256" }, { indexed: true, name: "requestId", type: "uint256" },
+      { indexed: true, name: "verifier", type: "address" }
+    ]
+  },
+  {
+    type: "event", name: "DisbursementCancelled", inputs: [
+      { indexed: true, name: "campaignId", type: "uint256" }, { indexed: true, name: "requestId", type: "uint256" },
+      { indexed: true, name: "beneficiary", type: "address" }
     ]
   },
   {

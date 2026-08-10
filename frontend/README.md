@@ -2,7 +2,7 @@
 
 Next.js frontend cho contract `Crowdfunding` trên Ethereum Sepolia. Dùng Next.js, TypeScript, Tailwind CSS, wagmi và viem.
 
-Giao diện tự nhận quyền của ví kết nối: donor quyên góp, tổ chức tạo/đóng campaign và chỉ định verifier, beneficiary tạo yêu cầu giải ngân với `amount` + `evidenceHash`, và verifier của campaign duyệt request. Beneficiary chỉ nhìn thấy nút rút khi request đã được verifier duyệt.
+Giao diện tự nhận quyền của ví kết nối: donor quyên góp, tổ chức tạo/đóng campaign và chỉ định verifier, beneficiary tạo yêu cầu giải ngân với `amount` + `evidenceHash`, và verifier của campaign duyệt hoặc từ chối request. Beneficiary chỉ nhìn thấy nút rút khi request đã được verifier duyệt và có thể hủy request còn `Pending`.
 
 ## Chạy local
 

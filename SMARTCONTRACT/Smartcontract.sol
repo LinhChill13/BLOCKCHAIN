@@ -13,7 +13,9 @@ contract Crowdfunding {
     enum DisbursementStatus {
         Pending,
         Approved,
-        Withdrawn
+        Rejected,
+        Withdrawn,
+        Cancelled
     }
 
     struct Campaign {
@@ -67,6 +69,16 @@ contract Crowdfunding {
         uint256 indexed campaignId,
         uint256 indexed requestId,
         address indexed verifier
+    );
+    event DisbursementRejected(
+        uint256 indexed campaignId,
+        uint256 indexed requestId,
+        address indexed verifier
+    );
+    event DisbursementCancelled(
+        uint256 indexed campaignId,
+        uint256 indexed requestId,
+        address indexed beneficiary
     );
     event FundsWithdrawn(
         uint256 indexed campaignId,
@@ -190,6 +202,39 @@ contract Crowdfunding {
         request.status = DisbursementStatus.Approved;
 
         emit DisbursementApproved(campaignId, requestId, msg.sender);
+    }
+
+    /// @notice The campaign verifier rejects a pending request and releases the campaign.
+    function rejectDisbursement(uint256 campaignId, uint256 requestId)
+        external
+        campaignExists(campaignId)
+    {
+        require(msg.sender == campaigns[campaignId].verifier, "Only campaign verifier can reject");
+        require(activeDisbursementRequestIds[campaignId] == requestId, "Request is not active");
+
+        DisbursementRequest storage request = disbursementRequests[campaignId][requestId];
+        require(request.status == DisbursementStatus.Pending, "Request is not pending");
+        request.status = DisbursementStatus.Rejected;
+        activeDisbursementRequestIds[campaignId] = 0;
+
+        emit DisbursementRejected(campaignId, requestId, msg.sender);
+    }
+
+    /// @notice Beneficiary cancels its own pending request and may submit a corrected one.
+    function cancelDisbursement(uint256 campaignId, uint256 requestId)
+        external
+        campaignExists(campaignId)
+    {
+        Campaign storage campaign = campaigns[campaignId];
+        require(msg.sender == campaign.beneficiary, "Only beneficiary can cancel");
+        require(activeDisbursementRequestIds[campaignId] == requestId, "Request is not active");
+
+        DisbursementRequest storage request = disbursementRequests[campaignId][requestId];
+        require(request.status == DisbursementStatus.Pending, "Request is not pending");
+        request.status = DisbursementStatus.Cancelled;
+        activeDisbursementRequestIds[campaignId] = 0;
+
+        emit DisbursementCancelled(campaignId, requestId, msg.sender);
     }
 
     /// @notice Transfers only the exact amount in a verifier-approved request.

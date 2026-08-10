@@ -6,6 +6,16 @@ Mở Hardhat Node trong terminal thứ nhất:
 npx hardhat node
 ```
 
+## Seed data demo
+
+Khi Hardhat Node đang chạy, dùng terminal thứ hai để tạo một contract mới cùng dữ liệu minh họa:
+
+```bash
+npm run seed:demo -- --network localhost
+```
+
+Script tự deploy contract, tạo bốn campaign, donation, request và các trạng thái khác nhau. Nó in ra `Crowdfunding address`; copy địa chỉ này vào `frontend/.env.local` dưới dạng `NEXT_PUBLIC_CROWDFUNDING_ADDRESS` để xem dữ liệu trên giao diện. Chi tiết từng campaign ở [`SEED_DATA.md`](SEED_DATA.md).
+
 Trong terminal thứ hai, deploy contract:
 
 ```bash
@@ -25,6 +35,13 @@ npm run balances -- --network localhost
 ```
 
 `campaign:close` chỉ dừng nhận donation; việc giải ngân không phụ thuộc vào deadline hay trạng thái đóng, mà luôn bắt buộc có verifier của campaign duyệt request trước.
+
+Nếu request sai hoặc chứng từ không hợp lệ, verifier từ chối nó; nếu beneficiary tự phát hiện sai, beneficiary hủy request khi nó còn `Pending`. Cả hai thao tác giải phóng campaign để tạo request mới:
+
+```bash
+npm run disbursement:reject -- --network localhost
+npm run disbursement:cancel -- --network localhost
+```
 
 ## Biến tuỳ chỉnh
 
