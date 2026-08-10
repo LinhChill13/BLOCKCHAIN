@@ -2,7 +2,7 @@ import { bigintEnv, ethers, getSigner, requiredAddress } from "./helpers.ts";
 
 const donor = await getSigner(2);
 const campaignId = bigintEnv("CAMPAIGN_ID", 0n);
-const amount = ethers.parseEther(process.env.DONATION_ETH ?? "0.1");
+const amount = ethers.parseEther(process.env.DONATION_ETH ?? "0.001");
 const crowdfunding = await ethers.getContractAt("Crowdfunding", requiredAddress(), donor);
 
 if (amount <= 0n) {
