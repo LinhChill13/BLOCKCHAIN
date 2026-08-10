@@ -1,25 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @title Crowdfunding - a single-contract crowdfunding MVP
-/// @notice Stores on-chain financial data; `metadataId` links a campaign to its
-///         off-chain record in Supabase.
+/// @title Crowdfunding - transparent, verifier-approved charity disbursements
+/// @notice The contract holds donations. A beneficiary must publish an amount and
+/// evidence hash, receive the campaign verifier's approval, then withdraw that exact amount.
 contract Crowdfunding {
     enum CampaignStatus {
         Active,
         Closed
     }
 
+    enum DisbursementStatus {
+        Pending,
+        Approved,
+        Withdrawn
+    }
+
     struct Campaign {
         uint256 id;
         address creator;
         address payable beneficiary;
+        address verifier;
         uint256 targetAmount;
         uint256 deadline;
         uint256 totalRaised;
-        bool withdrawn;
+        uint256 totalWithdrawn;
         CampaignStatus status;
         string metadataId;
+    }
+
+    struct DisbursementRequest {
+        uint256 amount;
+        bytes32 evidenceHash;
+        DisbursementStatus status;
     }
 
     uint256 private campaignCount;
@@ -27,18 +40,40 @@ contract Crowdfunding {
 
     mapping(uint256 campaignId => Campaign campaign) private campaigns;
     mapping(uint256 campaignId => mapping(address donor => uint256 amount)) private donations;
+    mapping(uint256 campaignId => uint256 requestCount) private disbursementRequestCounts;
+    mapping(uint256 campaignId => uint256 requestId) private activeDisbursementRequestIds;
+    mapping(uint256 campaignId => mapping(uint256 requestId => DisbursementRequest request))
+        private disbursementRequests;
 
     event CampaignCreated(
         uint256 indexed campaignId,
         address indexed creator,
         address indexed beneficiary,
+        address verifier,
         uint256 targetAmount,
         uint256 deadline,
         string metadataId
     );
     event DonationReceived(uint256 indexed campaignId, address indexed donor, uint256 amount);
     event CampaignClosed(uint256 indexed campaignId, address indexed closedBy);
-    event FundsWithdrawn(uint256 indexed campaignId, address indexed beneficiary, uint256 amount);
+    event DisbursementRequested(
+        uint256 indexed campaignId,
+        uint256 indexed requestId,
+        address indexed beneficiary,
+        uint256 amount,
+        bytes32 evidenceHash
+    );
+    event DisbursementApproved(
+        uint256 indexed campaignId,
+        uint256 indexed requestId,
+        address indexed verifier
+    );
+    event FundsWithdrawn(
+        uint256 indexed campaignId,
+        uint256 indexed requestId,
+        address indexed beneficiary,
+        uint256 amount
+    );
 
     modifier campaignExists(uint256 campaignId) {
         require(campaignId < campaignCount, "Campaign does not exist");
@@ -55,11 +90,17 @@ contract Crowdfunding {
     /// @notice Creates a campaign. `deadline` is a Unix timestamp in seconds.
     function createCampaign(
         address payable beneficiary,
+        address verifier,
         uint256 targetAmount,
         uint256 deadline,
         string calldata metadataId
     ) external returns (uint256 campaignId) {
         require(beneficiary != address(0), "Invalid beneficiary");
+        require(verifier != address(0), "Invalid verifier");
+        require(
+            verifier != beneficiary && verifier != msg.sender,
+            "Verifier must be independent"
+        );
         require(targetAmount > 0, "Target must be greater than zero");
         require(deadline > block.timestamp, "Deadline must be in the future");
 
@@ -68,10 +109,11 @@ contract Crowdfunding {
             id: campaignId,
             creator: msg.sender,
             beneficiary: beneficiary,
+            verifier: verifier,
             targetAmount: targetAmount,
             deadline: deadline,
             totalRaised: 0,
-            withdrawn: false,
+            totalWithdrawn: 0,
             status: CampaignStatus.Active,
             metadataId: metadataId
         });
@@ -80,6 +122,7 @@ contract Crowdfunding {
             campaignId,
             msg.sender,
             beneficiary,
+            verifier,
             targetAmount,
             deadline,
             metadataId
@@ -109,34 +152,68 @@ contract Crowdfunding {
         emit CampaignClosed(campaignId, msg.sender);
     }
 
-    /// @notice Sends all collected ETH to the beneficiary exactly once.
-    /// @dev The campaign must have ended or have been closed by its creator.
-    function withdraw(uint256 campaignId)
+    /// @notice Beneficiary requests a specific disbursement and commits its evidence hash.
+    /// @dev Only one request may be awaiting approval or withdrawal per campaign.
+    function createDisbursementRequest(
+        uint256 campaignId,
+        uint256 amount,
+        bytes32 evidenceHash
+    ) external campaignExists(campaignId) returns (uint256 requestId) {
+        Campaign storage campaign = campaigns[campaignId];
+        require(msg.sender == campaign.beneficiary, "Only beneficiary can request");
+        require(amount > 0, "Amount must be greater than zero");
+        require(evidenceHash != bytes32(0), "Evidence hash is required");
+        require(activeDisbursementRequestIds[campaignId] == 0, "Active request exists");
+        require(amount <= campaign.totalRaised - campaign.totalWithdrawn, "Amount exceeds available funds");
+
+        requestId = ++disbursementRequestCounts[campaignId];
+        activeDisbursementRequestIds[campaignId] = requestId;
+        disbursementRequests[campaignId][requestId] = DisbursementRequest({
+            amount: amount,
+            evidenceHash: evidenceHash,
+            status: DisbursementStatus.Pending
+        });
+
+        emit DisbursementRequested(campaignId, requestId, campaign.beneficiary, amount, evidenceHash);
+    }
+
+    /// @notice The campaign's verifier approves a beneficiary's published request.
+    function approveDisbursement(uint256 campaignId, uint256 requestId)
+        external
+        campaignExists(campaignId)
+    {
+        require(msg.sender == campaigns[campaignId].verifier, "Only campaign verifier can approve");
+        require(activeDisbursementRequestIds[campaignId] == requestId, "Request is not active");
+
+        DisbursementRequest storage request = disbursementRequests[campaignId][requestId];
+        require(request.status == DisbursementStatus.Pending, "Request is not pending");
+        request.status = DisbursementStatus.Approved;
+
+        emit DisbursementApproved(campaignId, requestId, msg.sender);
+    }
+
+    /// @notice Transfers only the exact amount in a verifier-approved request.
+    function withdraw(uint256 campaignId, uint256 requestId)
         external
         campaignExists(campaignId)
         nonReentrant
     {
         Campaign storage campaign = campaigns[campaignId];
         require(msg.sender == campaign.beneficiary, "Only beneficiary can withdraw");
-        require(!campaign.withdrawn, "Funds already withdrawn");
-        require(campaign.totalRaised > 0, "No funds to withdraw");
-        require(
-            campaign.status == CampaignStatus.Closed || block.timestamp > campaign.deadline,
-            "Campaign is still active"
-        );
+        require(activeDisbursementRequestIds[campaignId] == requestId, "Request is not active");
+
+        DisbursementRequest storage request = disbursementRequests[campaignId][requestId];
+        require(request.status == DisbursementStatus.Approved, "Request is not approved");
 
         // Effects precede the external ETH transfer to prevent reentrancy.
-        campaign.withdrawn = true;
-        if (campaign.status == CampaignStatus.Active) {
-            campaign.status = CampaignStatus.Closed;
-            emit CampaignClosed(campaignId, msg.sender);
-        }
+        request.status = DisbursementStatus.Withdrawn;
+        activeDisbursementRequestIds[campaignId] = 0;
+        campaign.totalWithdrawn += request.amount;
 
-        uint256 amount = campaign.totalRaised;
-        (bool sent, ) = campaign.beneficiary.call{value: amount}("");
+        (bool sent, ) = campaign.beneficiary.call{value: request.amount}("");
         require(sent, "ETH transfer failed");
 
-        emit FundsWithdrawn(campaignId, campaign.beneficiary, amount);
+        emit FundsWithdrawn(campaignId, requestId, campaign.beneficiary, request.amount);
     }
 
     function getCampaign(uint256 campaignId)
@@ -159,5 +236,33 @@ contract Crowdfunding {
         returns (uint256)
     {
         return donations[campaignId][donor];
+    }
+
+    function getDisbursementRequestCount(uint256 campaignId)
+        external
+        view
+        campaignExists(campaignId)
+        returns (uint256)
+    {
+        return disbursementRequestCounts[campaignId];
+    }
+
+    function getActiveDisbursementRequestId(uint256 campaignId)
+        external
+        view
+        campaignExists(campaignId)
+        returns (uint256)
+    {
+        return activeDisbursementRequestIds[campaignId];
+    }
+
+    function getDisbursementRequest(uint256 campaignId, uint256 requestId)
+        external
+        view
+        campaignExists(campaignId)
+        returns (DisbursementRequest memory)
+    {
+        require(requestId > 0 && requestId <= disbursementRequestCounts[campaignId], "Request does not exist");
+        return disbursementRequests[campaignId][requestId];
     }
 }

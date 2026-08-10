@@ -18,7 +18,7 @@ export default function Home() {
         <div>
           <p className="eyebrow">CROWDFUNDING • SEPOLIA</p>
           <h1>Quyên góp minh bạch,<br /><em>mọi dòng tiền đều on-chain.</em></h1>
-          <p className="hero-copy">Tạo chiến dịch, đóng góp ETH và theo dõi trạng thái trực tiếp từ smart contract Crowdfunding.</p>
+          <p className="hero-copy">Donor đóng góp ETH; beneficiary phải công bố bằng chứng, được verifier của campaign duyệt rồi mới có thể rút tiền.</p>
           <div className="hero-actions">
             <Link href="/create" className="button button-primary">Tạo chiến dịch</Link>
             <a href="#campaigns" className="button button-secondary">Khám phá chiến dịch</a>

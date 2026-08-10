@@ -13,7 +13,9 @@
     "campaign:create": "npm run sync:contract && hardhat run scripts/create-campaign.ts",
     "campaign:donate": "npm run sync:contract && hardhat run scripts/donate.ts",
     "campaign:close": "npm run sync:contract && hardhat run scripts/close-campaign.ts",
-    "campaign:withdraw": "npm run sync:contract && hardhat run scripts/withdraw.ts",
+    "disbursement:request": "npm run sync:contract && hardhat run scripts/create-disbursement-request.ts",
+    "disbursement:approve": "npm run sync:contract && hardhat run scripts/approve-disbursement.ts",
+    "disbursement:withdraw": "npm run sync:contract && hardhat run scripts/withdraw.ts",
     "balances": "npm run sync:contract && hardhat run scripts/check-balances.ts"
   },
   "devDependencies": {

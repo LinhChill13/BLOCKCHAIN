@@ -6,51 +6,41 @@ Mở Hardhat Node trong terminal thứ nhất:
 npx hardhat node
 ```
 
-Trong terminal thứ hai, deploy contract rồi đặt địa chỉ contract vào biến môi trường:
+Trong terminal thứ hai, deploy contract:
 
 ```bash
 npm run deploy -- --network localhost
 export CROWDFUNDING_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
 ```
 
-Sau đó chạy lần lượt các thao tác. Mặc định các script dùng campaign `0`, account local số 0 làm creator, số 1 làm beneficiary và số 2 làm donor.
+Luồng đầy đủ dùng campaign `0`, account số 0 là tổ chức/creator, số 1 là beneficiary, số 2 là donor và số 3 là verifier. Verifier được chọn khi chạy `campaign:create` và được khóa theo campaign:
 
 ```bash
 npm run campaign:create -- --network localhost
 npm run campaign:donate -- --network localhost
-npm run campaign:close -- --network localhost
-npm run campaign:withdraw -- --network localhost
+npm run disbursement:request -- --network localhost
+npm run disbursement:approve -- --network localhost
+npm run disbursement:withdraw -- --network localhost
 npm run balances -- --network localhost
 ```
 
-Ví dụ tùy chỉnh dữ liệu campaign:
+`campaign:close` chỉ dừng nhận donation; việc giải ngân không phụ thuộc vào deadline hay trạng thái đóng, mà luôn bắt buộc có verifier của campaign duyệt request trước.
+
+## Biến tuỳ chỉnh
 
 ```bash
 TARGET_ETH=2 DEADLINE_SECONDS=86400 METADATA_ID=school-fund \
+VERIFIER=0x1111111111111111111111111111111111111111 \
 npm run campaign:create -- --network localhost
-```
 
-Ví dụ donate 0.25 ETH cho campaign số 1:
-
-```bash
 CAMPAIGN_ID=1 DONATION_ETH=0.25 \
 npm run campaign:donate -- --network localhost
+
+CAMPAIGN_ID=1 REQUEST_ETH=0.05 \
+EVIDENCE_HASH=0x1111111111111111111111111111111111111111111111111111111111111111 \
+npm run disbursement:request -- --network localhost
 ```
 
-Để dùng account khác, thêm `ACCOUNT_INDEX`. Account phải có đúng quyền trong contract; ví dụ close campaign chỉ thành công với creator.
+`EVIDENCE_HASH` phải là bytes32 khác 0. Nếu bỏ qua, script tạo request dùng hash mẫu `keccak256("ipfs://evidence-001")`. `REQUEST_ID` mặc định là request đang hoạt động, hoặc đặt rõ khi cần.
 
-## Kiểm tra số ETH
-
-Lệnh sau in số dư của mọi account do Hardhat Node tạo, số ETH contract đang giữ và thông tin campaign số 0:
-
-```bash
-npm run balances -- --network localhost
-```
-
-Để kiểm tra campaign khác, đặt `CAMPAIGN_ID` trước lệnh:
-
-```bash
-CAMPAIGN_ID=1 npm run balances -- --network localhost
-```
-
-Sau khi withdraw, `totalRaisedEth` vẫn thể hiện tổng tiền từng quyên góp, còn balance của contract sẽ giảm vì ETH đã được chuyển sang beneficiary.
+`balances` in tổng quyên góp, đã giải ngân, số tiền còn khả dụng và request đang hoạt động để đối chiếu với số dư của contract.

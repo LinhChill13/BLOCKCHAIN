@@ -35,11 +35,25 @@ try {
       beneficiary: campaign.beneficiary,
       targetEth: ethers.formatEther(campaign.targetAmount),
       totalRaisedEth: ethers.formatEther(campaign.totalRaised),
+      totalWithdrawnEth: ethers.formatEther(campaign.totalWithdrawn),
+      availableEth: ethers.formatEther(campaign.totalRaised - campaign.totalWithdrawn),
       status: campaign.status === 0n ? "Active" : "Closed",
-      withdrawn: campaign.withdrawn,
       metadataId: campaign.metadataId
     }
   ]);
+
+  const requestId = await crowdfunding.getActiveDisbursementRequestId(campaignId);
+  if (requestId > 0n) {
+    const request = await crowdfunding.getDisbursementRequest(campaignId, requestId);
+    console.table([{
+      activeRequestId: requestId.toString(),
+      amountEth: ethers.formatEther(request.amount),
+      evidenceHash: request.evidenceHash,
+      status: ["Pending", "Approved", "Withdrawn"][Number(request.status)]
+    }]);
+  } else {
+    console.log("No active disbursement request.");
+  }
 } catch {
   console.log(`Campaign ${campaignId} does not exist yet.`);
 }

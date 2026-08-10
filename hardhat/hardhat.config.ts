@@ -42,8 +42,9 @@ export default defineConfig({
       accounts: [
         configVariable("SEPOLIA_CREATOR_PRIVATE_KEY"),
         configVariable("SEPOLIA_BENEFICIARY_PRIVATE_KEY"),
-        configVariable("SEPOLIA_DONOR_PRIVATE_KEY")
-  ]
-}
+        configVariable("SEPOLIA_DONOR_PRIVATE_KEY"),
+        configVariable("SEPOLIA_VERIFIER_PRIVATE_KEY")
+      ]
+    }
   }
 });
