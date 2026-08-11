@@ -1,0 +1,38 @@
+
+> crowdfunding-hardhat@1.0.0 test
+> npm run sync:contract && hardhat test
+
+
+> crowdfunding-hardhat@1.0.0 sync:contract
+> node scripts/sync-contract.mjs
+
+Synced SMARTCONTRACT/Smartcontract.sol to hardhat/contracts/Crowdfunding.sol
+No contracts to compile
+
+Running Solidity tests
+
+
+Running Mocha tests
+
+
+  Crowdfunding
+    ✔ TC-01: tạo campaign và lưu verifier riêng cho campaign
+    ✔ TC-02: kiểm tra dữ liệu campaign không hợp lệ
+    ✔ TC-03: donor donate và không thể donate sai điều kiện
+    ✔ TC-04: chỉ tổ chức có thể đóng campaign
+    ✔ TC-05: beneficiary tạo yêu cầu với amount và evidenceHash
+    ✔ TC-06: chỉ beneficiary được tạo request, amount phải khả dụng và evidenceHash bắt buộc
+    ✔ TC-07: mỗi campaign chỉ có một request đang xử lý
+    ✔ TC-08: chỉ verifier của campaign có thể duyệt request pending
+    ✔ TC-09: mỗi campaign có thể dùng verifier khác
+    ✔ TC-10: beneficiary chỉ rút đúng request đã được verifier duyệt
+    ✔ TC-11: sau khi rút beneficiary có thể tạo request kế tiếp trong số dư còn lại
+    ✔ TC-12: verifier có thể từ chối request pending và beneficiary tạo request mới
+    ✔ TC-13: beneficiary có thể hủy request pending và tạo request mới
+
+
+  13 passing (206ms)
+
+
+13 passing (13 mocha)
+
