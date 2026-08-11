@@ -12,11 +12,6 @@ npx hardhat node
 npm run seed:demo -- --network localhost
 ```
 
-Lệnh in địa chỉ contract. Dán nó vào `frontend/.env.local` rồi chạy frontend để xem dữ liệu:
-
-```env
-NEXT_PUBLIC_CROWDFUNDING_ADDRESS=0x...
-```
 
 ## Các account local
 
