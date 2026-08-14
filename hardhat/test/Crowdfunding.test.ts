@@ -7,7 +7,8 @@ const TARGET_AMOUNT = ethers.parseEther("1");
 const DONATION_AMOUNT = ethers.parseEther("0.1");
 const REQUEST_AMOUNT = ethers.parseEther("0.04");
 const METADATA_ID = "campaign-001";
-const EVIDENCE_HASH = ethers.keccak256(ethers.toUtf8Bytes("ipfs://evidence-001"));
+const EVIDENCE_CID = "bafybeigdyrzt4evidence001";
+const EVIDENCE_HASH = ethers.keccak256(ethers.toUtf8Bytes(EVIDENCE_CID));
 
 async function deployCampaignFixture() {
   const [creator, beneficiary, donor, verifier, stranger] = await ethers.getSigners();
@@ -109,32 +110,37 @@ describe("Crowdfunding", function () {
       .withArgs(0n, creator.address);
   });
 
-  it("TC-05: beneficiary tạo yêu cầu với amount và evidenceHash", async function () {
+  it("TC-05: beneficiary tạo yêu cầu với CID và hash khớp nhau", async function () {
     const { crowdfunding, beneficiary, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
 
-    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH))
+    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH))
       .to.emit(crowdfunding, "DisbursementRequested")
-      .withArgs(0n, 1n, beneficiary.address, REQUEST_AMOUNT, EVIDENCE_HASH);
+      .withArgs(0n, 1n, beneficiary.address, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
 
     const request = await crowdfunding.getDisbursementRequest(0, 1);
     expect(request.amount).to.equal(REQUEST_AMOUNT);
+    expect(request.evidenceCid).to.equal(EVIDENCE_CID);
     expect(request.evidenceHash).to.equal(EVIDENCE_HASH);
     expect(request.status).to.equal(0n);
     expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(1n);
   });
 
-  it("TC-06: chỉ beneficiary được tạo request, amount phải khả dụng và evidenceHash bắt buộc", async function () {
+  it("TC-06: kiểm tra quyền, CID và hash khi tạo request", async function () {
     const { crowdfunding, donor, beneficiary, stranger, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
 
-    await expect(crowdfunding.connect(stranger).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH))
+    await expect(crowdfunding.connect(stranger).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH))
       .to.be.revertedWith("Only beneficiary can request");
-    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, 0, EVIDENCE_HASH))
+    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, 0, EVIDENCE_CID, EVIDENCE_HASH))
       .to.be.revertedWith("Amount must be greater than zero");
-    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, ethers.ZeroHash))
+    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, "", EVIDENCE_HASH))
+      .to.be.revertedWith("Evidence CID is required");
+    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, ethers.ZeroHash))
       .to.be.revertedWith("Evidence hash is required");
-    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, DONATION_AMOUNT + 1n, EVIDENCE_HASH))
+    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, ethers.keccak256(ethers.toUtf8Bytes("different-cid"))))
+      .to.be.revertedWith("Evidence hash mismatch");
+    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, DONATION_AMOUNT + 1n, EVIDENCE_CID, EVIDENCE_HASH))
       .to.be.revertedWith("Amount exceeds available funds");
     expect(await crowdfunding.getDonation(0, donor.address)).to.equal(DONATION_AMOUNT);
   });
@@ -142,16 +148,16 @@ describe("Crowdfunding", function () {
   it("TC-07: mỗi campaign chỉ có một request đang xử lý", async function () {
     const { crowdfunding, beneficiary, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
 
-    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH))
+    await expect(crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH))
       .to.be.revertedWith("Active request exists");
   });
 
   it("TC-08: chỉ verifier của campaign có thể duyệt request pending", async function () {
     const { crowdfunding, beneficiary, verifier, stranger, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
 
     await expect(crowdfunding.connect(stranger).approveDisbursement(0, 1)).to.be.revertedWith(
       "Only campaign verifier can approve",
@@ -173,7 +179,7 @@ describe("Crowdfunding", function () {
       .connect(creator)
       .createCampaign(beneficiary.address, stranger.address, TARGET_AMOUNT, deadline, "campaign-002");
     await crowdfunding.connect(donor).donate(1, { value: DONATION_AMOUNT });
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(1, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(1, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
 
     expect((await crowdfunding.getCampaign(0)).verifier).to.equal(verifier.address);
     expect((await crowdfunding.getCampaign(1)).verifier).to.equal(stranger.address);
@@ -188,7 +194,7 @@ describe("Crowdfunding", function () {
   it("TC-10: beneficiary chỉ rút đúng request đã được verifier duyệt", async function () {
     const { crowdfunding, beneficiary, verifier, stranger, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
 
     await expect(crowdfunding.connect(beneficiary).withdraw(0, 1)).to.be.revertedWith("Request is not approved");
     await crowdfunding.connect(verifier).approveDisbursement(0, 1);
@@ -210,19 +216,19 @@ describe("Crowdfunding", function () {
   it("TC-11: sau khi rút beneficiary có thể tạo request kế tiếp trong số dư còn lại", async function () {
     const { crowdfunding, beneficiary, verifier, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
     await crowdfunding.connect(verifier).approveDisbursement(0, 1);
     await crowdfunding.connect(beneficiary).withdraw(0, 1);
 
     const remainingAmount = DONATION_AMOUNT - REQUEST_AMOUNT;
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, remainingAmount, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, remainingAmount, EVIDENCE_CID, EVIDENCE_HASH);
     expect(await crowdfunding.getDisbursementRequestCount(0)).to.equal(2n);
   });
 
   it("TC-12: verifier có thể từ chối request pending và beneficiary tạo request mới", async function () {
     const { crowdfunding, beneficiary, verifier, stranger, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
 
     await expect(crowdfunding.connect(stranger).rejectDisbursement(0, 1)).to.be.revertedWith(
       "Only campaign verifier can reject",
@@ -233,14 +239,14 @@ describe("Crowdfunding", function () {
     expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(2n);
     expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(0n);
 
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
     expect(await crowdfunding.getDisbursementRequestCount(0)).to.equal(2n);
   });
 
   it("TC-13: beneficiary có thể hủy request pending và tạo request mới", async function () {
     const { crowdfunding, beneficiary, stranger, fundCampaign } = await deployCampaignFixture();
     await fundCampaign();
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
 
     await expect(crowdfunding.connect(stranger).cancelDisbursement(0, 1)).to.be.revertedWith(
       "Only beneficiary can cancel",
@@ -251,7 +257,7 @@ describe("Crowdfunding", function () {
     expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(4n);
     expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(0n);
 
-    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_HASH);
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
     expect(await crowdfunding.getDisbursementRequestCount(0)).to.equal(2n);
   });
 });

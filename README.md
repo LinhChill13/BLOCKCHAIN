@@ -6,7 +6,7 @@ Charity DApp là ứng dụng gây quỹ trên EVM, trong đó ETH luôn nằm t
 
 1. **Tổ chức** tạo campaign, chỉ định **beneficiary**, **verifier** độc lập, mục tiêu và thời hạn.
 2. **Donor** gửi ETH; tổng đóng góp và từng khoản đóng góp được ghi on-chain.
-3. **Beneficiary** tạo yêu cầu giải ngân gồm `amount` và `evidenceHash` (hash `bytes32` của hồ sơ/bằng chứng, ví dụ hash CID IPFS).
+3. **Beneficiary** chọn chứng từ PDF/ảnh; ứng dụng upload lên IPFS, rồi tạo yêu cầu giải ngân gồm `amount`, `evidenceCid` và `evidenceHash = keccak256(bytes(evidenceCid))`.
 4. **Verifier của campaign** — ví được công bố và khóa ngay khi campaign được tạo — duyệt chính yêu cầu đó on-chain.
 5. Chỉ sau khi duyệt, **beneficiary** mới có thể rút đúng `amount` đã yêu cầu. Contract phát event cho cả tạo yêu cầu, duyệt và rút tiền.
 

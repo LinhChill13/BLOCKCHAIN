@@ -21,7 +21,7 @@ export const crowdfundingAbi = [
     type: "function", name: "createDisbursementRequest", stateMutability: "nonpayable",
     inputs: [
       { name: "campaignId", type: "uint256" }, { name: "amount", type: "uint256" },
-      { name: "evidenceHash", type: "bytes32" }
+      { name: "evidenceCid", type: "string" }, { name: "evidenceHash", type: "bytes32" }
     ], outputs: [{ name: "requestId", type: "uint256" }]
   },
   {
@@ -60,14 +60,14 @@ export const crowdfundingAbi = [
     type: "function", name: "getDisbursementRequest", stateMutability: "view",
     inputs: [{ name: "campaignId", type: "uint256" }, { name: "requestId", type: "uint256" }],
     outputs: [{ name: "", type: "tuple", components: [
-      { name: "amount", type: "uint256" }, { name: "evidenceHash", type: "bytes32" }, { name: "status", type: "uint8" }
+      { name: "amount", type: "uint256" }, { name: "evidenceCid", type: "string" }, { name: "evidenceHash", type: "bytes32" }, { name: "status", type: "uint8" }
     ] }]
   },
   {
     type: "event", name: "DisbursementRequested", inputs: [
       { indexed: true, name: "campaignId", type: "uint256" }, { indexed: true, name: "requestId", type: "uint256" },
       { indexed: true, name: "beneficiary", type: "address" }, { indexed: false, name: "amount", type: "uint256" },
-      { indexed: false, name: "evidenceHash", type: "bytes32" }
+      { indexed: false, name: "evidenceCid", type: "string" }, { indexed: false, name: "evidenceHash", type: "bytes32" }
     ]
   },
   {
@@ -111,6 +111,7 @@ export type Campaign = {
 
 export type DisbursementRequest = {
   amount: bigint;
+  evidenceCid: string;
   evidenceHash: Hex;
   status: number;
 };

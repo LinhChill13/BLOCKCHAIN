@@ -33,6 +33,7 @@ contract Crowdfunding {
 
     struct DisbursementRequest {
         uint256 amount;
+        string evidenceCid;
         bytes32 evidenceHash;
         DisbursementStatus status;
     }
@@ -63,6 +64,7 @@ contract Crowdfunding {
         uint256 indexed requestId,
         address indexed beneficiary,
         uint256 amount,
+        string evidenceCid,
         bytes32 evidenceHash
     );
     event DisbursementApproved(
@@ -169,12 +171,15 @@ contract Crowdfunding {
     function createDisbursementRequest(
         uint256 campaignId,
         uint256 amount,
+        string calldata evidenceCid,
         bytes32 evidenceHash
     ) external campaignExists(campaignId) returns (uint256 requestId) {
         Campaign storage campaign = campaigns[campaignId];
         require(msg.sender == campaign.beneficiary, "Only beneficiary can request");
         require(amount > 0, "Amount must be greater than zero");
+        require(bytes(evidenceCid).length > 0, "Evidence CID is required");
         require(evidenceHash != bytes32(0), "Evidence hash is required");
+        require(evidenceHash == keccak256(bytes(evidenceCid)), "Evidence hash mismatch");
         require(activeDisbursementRequestIds[campaignId] == 0, "Active request exists");
         require(amount <= campaign.totalRaised - campaign.totalWithdrawn, "Amount exceeds available funds");
 
@@ -182,11 +187,19 @@ contract Crowdfunding {
         activeDisbursementRequestIds[campaignId] = requestId;
         disbursementRequests[campaignId][requestId] = DisbursementRequest({
             amount: amount,
+            evidenceCid: evidenceCid,
             evidenceHash: evidenceHash,
             status: DisbursementStatus.Pending
         });
 
-        emit DisbursementRequested(campaignId, requestId, campaign.beneficiary, amount, evidenceHash);
+        emit DisbursementRequested(
+            campaignId,
+            requestId,
+            campaign.beneficiary,
+            amount,
+            evidenceCid,
+            evidenceHash
+        );
     }
 
     /// @notice The campaign's verifier approves a beneficiary's published request.

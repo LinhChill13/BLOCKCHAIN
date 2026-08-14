@@ -51,7 +51,8 @@ npm run seed:demo -- --network localhost
 
 - `requestId`: số thứ tự request trong một campaign, bắt đầu từ `1`.
 - `amount`: số ETH beneficiary đề nghị giải ngân; không được vượt `available`.
-- `evidenceHash`: `bytes32` hash của bằng chứng, ví dụ hash liên quan đến tài liệu trên IPFS.
+- `evidenceCid`: CID IPFS của chứng từ để verifier có thể mở file.
+- `evidenceHash`: `bytes32` được contract bắt buộc bằng `keccak256(bytes(evidenceCid))`, giúp verifier kiểm tra CID không bị thay thế.
 - `status`:
   - `Pending`: chờ verifier duyệt/từ chối; beneficiary có thể hủy.
   - `Approved`: beneficiary được rút đúng `amount`.

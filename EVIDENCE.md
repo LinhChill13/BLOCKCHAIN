@@ -1,5 +1,7 @@
 # Slither security-scan evidence
 
+> **V2 deployment pending:** the Sepolia address recorded below is contract V1 and does not contain `evidenceCid`. The V2 source has passed 13 Hardhat tests locally, including empty-CID and CID/hash-mismatch reverts. After deploying V2, replace the V1 address and transaction evidence below with the V2 deployment, verification, upload, approval, and withdrawal transaction links.
+
 ## Phạm vi quét
 
 - Contract: `SMARTCONTRACT/Smartcontract.sol`

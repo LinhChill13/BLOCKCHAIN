@@ -16,3 +16,8 @@ Low level call in Crowdfunding.withdraw(uint256,uint256) (SMARTCONTRACT/Smartcon
 	- (sent,None) = campaign.beneficiary.call{value: request.amount}() (SMARTCONTRACT/Smartcontract.sol#258)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
 INFO:Slither:SMARTCONTRACT/Smartcontract.sol analyzed (1 contracts with 102 detectors), 3 result(s) found
+
+
+Slither có 3 cảnh báo:
+- 2 cảnh báo timestamp: chấp nhận được cho deadline.
+- 1 cảnh báo low-level call: đã giảm thiểu bằng CEI + nonReentrant + kiểm tra sent.

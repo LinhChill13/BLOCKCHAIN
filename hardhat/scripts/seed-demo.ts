@@ -13,7 +13,7 @@ const contractAddress = await crowdfunding.getAddress();
 const latestBlock = await ethers.provider.getBlock("latest");
 const deadline = BigInt(latestBlock!.timestamp + 30 * 24 * 60 * 60);
 
-const evidenceHash = (reference: string) => ethers.keccak256(ethers.toUtf8Bytes(reference));
+const evidenceHash = (cid: string) => ethers.keccak256(ethers.toUtf8Bytes(cid));
 
 async function createCampaign(
   beneficiary: string,
@@ -37,7 +37,7 @@ await createCampaign(beneficiaryA.address, verifierA.address, "1", "school-libra
 await donate(0n, "0.6");
 await (await crowdfunding
   .connect(beneficiaryA)
-  .createDisbursementRequest(0n, ethers.parseEther("0.15"), evidenceHash("ipfs://school-library/receipts-01")))
+  .createDisbursementRequest(0n, ethers.parseEther("0.15"), "bafybeigdyrzt-school-library-receipts-01", evidenceHash("bafybeigdyrzt-school-library-receipts-01")))
   .wait();
 
 // Campaign #1: a successful, partially completed disbursement.
@@ -45,7 +45,7 @@ await createCampaign(beneficiaryA.address, verifierB.address, "2", "flood-relief
 await donate(1n, "1");
 await (await crowdfunding
   .connect(beneficiaryA)
-  .createDisbursementRequest(1n, ethers.parseEther("0.25"), evidenceHash("ipfs://flood-relief/invoices-01")))
+  .createDisbursementRequest(1n, ethers.parseEther("0.25"), "bafybeigdyrzt-flood-relief-invoices-01", evidenceHash("bafybeigdyrzt-flood-relief-invoices-01")))
   .wait();
 await (await crowdfunding.connect(verifierB).approveDisbursement(1n, 1n)).wait();
 await (await crowdfunding.connect(beneficiaryA).withdraw(1n, 1n)).wait();
@@ -55,7 +55,7 @@ await createCampaign(beneficiaryB.address, verifierC.address, "1", "community-cl
 await donate(2n, "0.4");
 await (await crowdfunding
   .connect(beneficiaryB)
-  .createDisbursementRequest(2n, ethers.parseEther("0.1"), evidenceHash("ipfs://community-clinic/incomplete-proof")))
+  .createDisbursementRequest(2n, ethers.parseEther("0.1"), "bafybeigdyrzt-community-clinic-incomplete-proof", evidenceHash("bafybeigdyrzt-community-clinic-incomplete-proof")))
   .wait();
 await (await crowdfunding.connect(verifierC).rejectDisbursement(2n, 1n)).wait();
 
@@ -64,7 +64,7 @@ await createCampaign(beneficiaryB.address, verifierA.address, "0.5", "emergency-
 await donate(3n, "0.3");
 await (await crowdfunding
   .connect(beneficiaryB)
-  .createDisbursementRequest(3n, ethers.parseEther("0.05"), evidenceHash("ipfs://emergency-food/wrong-amount")))
+  .createDisbursementRequest(3n, ethers.parseEther("0.05"), "bafybeigdyrzt-emergency-food-wrong-amount", evidenceHash("bafybeigdyrzt-emergency-food-wrong-amount")))
   .wait();
 await (await crowdfunding.connect(beneficiaryB).cancelDisbursement(3n, 1n)).wait();
 

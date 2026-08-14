@@ -10,6 +10,7 @@ import {
   crowdfundingAbi, crowdfundingAddress, isContractConfigured, type Campaign, type DisbursementRequest
 } from "@/lib/contract";
 import { dateTime, eth, shortAddress } from "@/lib/format";
+import { evidenceGatewayUrl, evidenceHashForCid, isAcceptedEvidenceFile, uploadEvidenceFile } from "@/lib/ipfs";
 
 const requestStatus = ["Chờ verifier duyệt", "Đã được duyệt", "Đã bị từ chối", "Đã giải ngân", "Đã hủy"];
 
@@ -19,7 +20,9 @@ export default function CampaignDetailPage() {
   const { address } = useAccount();
   const [donation, setDonation] = useState("0.001");
   const [requestAmount, setRequestAmount] = useState("0.001");
-  const [evidenceHash, setEvidenceHash] = useState("");
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [uploadedEvidence, setUploadedEvidence] = useState<{ cid: string; evidenceHash: `0x${string}` } | null>(null);
   const [requestError, setRequestError] = useState("");
   const { data, isLoading, error, refetch } = useReadContract({
     address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "getCampaign", args: [campaignId],
@@ -48,20 +51,30 @@ export default function CampaignDetailPage() {
     writeContract({ address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "closeCampaign", args: [campaignId] });
   }
 
-  function createRequest(event: FormEvent) {
+  async function createRequest(event: FormEvent) {
     event.preventDefault();
     setRequestError("");
-    if (!/^0x[\da-fA-F]{64}$/.test(evidenceHash)) {
-      setRequestError("Evidence hash phải là bytes32: 0x + 64 ký tự hex.");
+    if (!evidenceFile) {
+      setRequestError("Hãy chọn chứng từ PDF, PNG hoặc JPG trước khi gửi yêu cầu.");
       return;
     }
+    if (!isAcceptedEvidenceFile(evidenceFile)) {
+      setRequestError("Chỉ chấp nhận PDF, PNG, JPG/JPEG và dung lượng tối đa 10 MB.");
+      return;
+    }
+
     try {
+      setIsUploadingEvidence(true);
+      const uploaded = await uploadEvidenceFile(evidenceFile);
+      setUploadedEvidence(uploaded);
       writeContract({
         address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "createDisbursementRequest",
-        args: [campaignId, parseEther(requestAmount), evidenceHash as `0x${string}`]
+        args: [campaignId, parseEther(requestAmount), uploaded.cid, uploaded.evidenceHash]
       });
     } catch (cause) {
       setRequestError(cause instanceof Error ? cause.message : "Không thể tạo yêu cầu giải ngân.");
+    } finally {
+      setIsUploadingEvidence(false);
     }
   }
 
@@ -96,6 +109,7 @@ export default function CampaignDetailPage() {
   const available = campaign.totalRaised - campaign.totalWithdrawn;
   const progress = campaign.targetAmount === 0n ? 0 : Math.min(100, Number((campaign.totalRaised * 100n) / campaign.targetAmount));
   const explorerUrl = `https://sepolia.etherscan.io/address/${crowdfundingAddress}`;
+  const isEvidenceHashValid = request ? evidenceHashForCid(request.evidenceCid).toLowerCase() === request.evidenceHash.toLowerCase() : false;
 
   return (
     <main><SiteHeader /><section className="shell detail-layout">
@@ -109,7 +123,7 @@ export default function CampaignDetailPage() {
         </aside>
       </div>
       <section className="transactions"><div className="section-heading"><div><p className="eyebrow">QUY TRÌNH MINH BẠCH</p><h2>Yêu cầu giải ngân</h2><p className="muted">Beneficiary công bố số tiền và hash bằng chứng; verifier của campaign duyệt on-chain; sau đó beneficiary mới rút được đúng số tiền đã duyệt.</p></div></div>
-        {activeRequestId > 0n && request ? <article className="detail-card"><p className="eyebrow">REQUEST #{activeRequestId.toString()}</p><h3>{requestStatus[request.status] ?? "Không xác định"}</h3><dl className="detail-list"><div><dt>Số tiền</dt><dd>{formatEther(request.amount)} ETH</dd></div><div><dt>Evidence hash</dt><dd className="hash-value">{request.evidenceHash}</dd></div></dl>{isVerifier && request.status === 0 && <><button className="button button-primary" onClick={approveRequest} disabled={isPending}>Duyệt yêu cầu</button><button className="button button-secondary" onClick={rejectRequest} disabled={isPending}>Từ chối yêu cầu</button></>}{isBeneficiary && request.status === 0 && <button className="button button-secondary" onClick={cancelRequest} disabled={isPending}>Hủy yêu cầu</button>}{isBeneficiary && request.status === 1 && <button className="button button-primary" onClick={withdraw} disabled={isPending}>Rút {formatEther(request.amount)} ETH đã duyệt</button>}</article> : isBeneficiary && available > 0n ? <form className="form-card disbursement-form" onSubmit={createRequest}><label>Số ETH cần giải ngân<input type="number" min="0.000001" step="0.001" max={formatEther(available)} value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} required /></label><label>Evidence hash (bytes32)<input value={evidenceHash} onChange={(e) => setEvidenceHash(e.target.value)} placeholder="0x…" required /></label><p className="muted">Hash phải đại diện cho hồ sơ/bằng chứng đã công khai, ví dụ hash của CID IPFS.</p>{requestError && <p className="form-error">{requestError}</p>}<button className="button button-primary" disabled={isPending}>Tạo yêu cầu giải ngân</button></form> : <div className="empty-state">Chưa có yêu cầu đang xử lý. Chỉ beneficiary có thể tạo yêu cầu khi còn tiền khả dụng.</div>}
+        {activeRequestId > 0n && request ? <article className="detail-card"><p className="eyebrow">REQUEST #{activeRequestId.toString()}</p><h3>{requestStatus[request.status] ?? "Không xác định"}</h3><dl className="detail-list"><div><dt>Số tiền</dt><dd>{formatEther(request.amount)} ETH</dd></div><div><dt>Evidence CID</dt><dd className="hash-value">{request.evidenceCid}</dd></div><div><dt>Chứng từ</dt><dd><a className="text-link" href={evidenceGatewayUrl(request.evidenceCid)} target="_blank" rel="noreferrer">Mở chứng từ IPFS ↗</a></dd></div><div><dt>Evidence hash</dt><dd className="hash-value">{request.evidenceHash}</dd></div><div><dt>Đối chiếu CID</dt><dd className={isEvidenceHashValid ? "hash-match" : "hash-mismatch"}>{isEvidenceHashValid ? "CID khớp hash on-chain" : "CID không khớp hash on-chain"}</dd></div></dl>{request.status === 0 && !isVerifier && <p className="notice">Chỉ ví verifier <code>{campaign.verifier}</code> mới có thể duyệt hoặc từ chối request này. Ví hiện tại: <code>{address ?? "chưa kết nối"}</code>.</p>}{isVerifier && request.status === 0 && <><button className="button button-primary" onClick={approveRequest} disabled={isPending}>Duyệt yêu cầu</button><button className="button button-secondary" onClick={rejectRequest} disabled={isPending}>Từ chối yêu cầu</button></>}{isBeneficiary && request.status === 0 && <button className="button button-secondary" onClick={cancelRequest} disabled={isPending}>Hủy yêu cầu</button>}{isBeneficiary && request.status === 1 && <button className="button button-primary" onClick={withdraw} disabled={isPending}>Rút {formatEther(request.amount)} ETH đã duyệt</button>}</article> : isBeneficiary && available > 0n ? <form className="form-card disbursement-form" onSubmit={createRequest}><label>Số ETH cần giải ngân<input type="number" min="0.000001" step="0.001" max={formatEther(available)} value={requestAmount} onChange={(e) => setRequestAmount(e.target.value)} required /></label><label>Chứng từ (PDF, PNG, JPG; tối đa 10 MB)<input type="file" accept="application/pdf,image/png,image/jpeg" onChange={(e) => { setEvidenceFile(e.target.files?.[0] ?? null); setUploadedEvidence(null); setRequestError(""); }} required /></label><p className="muted">Chứng từ sẽ được tải lên IPFS public. Chỉ dùng file demo hoặc đã ẩn dữ liệu cá nhân.</p>{uploadedEvidence && <p className="form-success">Đã upload IPFS: <span className="hash-value">{uploadedEvidence.cid}</span></p>}{requestError && <p className="form-error">{requestError}</p>}<button className="button button-primary" disabled={isUploadingEvidence || isPending || receipt.isLoading}>{isUploadingEvidence ? "Đang upload chứng từ…" : isPending || receipt.isLoading ? "Đang chờ ví…" : "Tạo yêu cầu giải ngân"}</button></form> : <div className="empty-state">Chưa có yêu cầu đang xử lý. Chỉ beneficiary có thể tạo yêu cầu khi còn tiền khả dụng.</div>}
         {(writeError || receipt.isError) && <p className="form-error">{writeError?.message || "Transaction thất bại."}</p>}
         {receipt.isSuccess && <p className="form-success">Transaction đã xác nhận. <button className="inline-button" onClick={refresh}>Cập nhật dữ liệu</button></p>}
       </section>
