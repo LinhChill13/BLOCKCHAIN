@@ -50,14 +50,14 @@ Slither phân tích 1 contract với 102 detector và trả về 3 kết quả:
 
 > Điền các liên kết giao dịch sau khi V2 được deploy lên Sepolia. Không dùng dữ liệu từ V1.
 
-| Bước | Actor | Hành động | Giao dịch | Kết quả cần xác minh | Trạng thái |
-|---|---|---|---|---|---|
-| 1 | Deployer | Deploy và verify V2 | Chưa có | Địa chỉ contract, bytecode/source đã verify | Chờ deploy |
-| 2 | Creator | `createCampaign` | Chưa có | `CampaignCreated`, campaign ID và các role | Chờ giao dịch |
-| 3 | Donor | `donate` | Chưa có | `DonationReceived`, `totalRaised` tăng | Chờ giao dịch |
-| 4 | Beneficiary | Upload chứng từ, rồi gọi `createDisbursementRequest` | Chưa có | `DisbursementRequested`, CID và hash được lưu on-chain | Chờ giao dịch |
-| 5 | Verifier | `approveDisbursement` | Chưa có | `DisbursementApproved`, request chuyển sang `Approved` | Chờ giao dịch |
-| 6 | Beneficiary | `withdraw` | Chưa có | `FundsWithdrawn`, request chuyển sang `Withdrawn` và beneficiary nhận ETH | Chờ giao dịch |
+| Bước | Actor | Hành động | Giao dịch | Kết quả cần xác minh |
+|---|---|---|---|---|
+| 1 | Deployer | Deploy và verify V2 | 0xfd20cc10856c3452020b55ea1dea05e6aec10fb8e51d15cccce9f938d7ae0fe7  | Địa chỉ contract, bytecode/source đã verify | 
+| 2 | Creator | `createCampaign` | 0x0bbd55adfd3004c3793ea1ab2354babc5082f885c6566f12ecd8182385bda849 | `CampaignCreated`, campaign ID và các role | 
+| 3 | Donor | `donate` | 0x55882d8f8aae3c82df91c5d49a0a29cc597ee696351da7bb3634077e2cb71df7 | `DonationReceived`, `totalRaised` tăng | Chờ giao dịch |
+| 4 | Beneficiary | Upload chứng từ, rồi gọi `createDisbursementRequest` | 0x1e26669cfd5743b12972f079d4c1c2b0acc624d54173a7977dc098fefeb3ec71 | `DisbursementRequested`, CID và hash được lưu on-chain | 
+| 5 | Verifier | `approveDisbursement` | 0x36ab2040066cec4c89539635f4e09965375b42117b2d3ccc4598bf790a730fa3 | `DisbursementApproved`, request chuyển sang `Approved` | 
+| 6 | Beneficiary | `withdraw` | 0x36ac03482d6bf8dcb7ba7f9923b9b5c3376e47be6c3ac11d912845270d8eedad | `FundsWithdrawn`, request chuyển sang `Withdrawn` và beneficiary nhận ETH | 
 
 ## Thuộc tính on-chain và off-chain
 
