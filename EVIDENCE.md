@@ -61,18 +61,22 @@ Slither phân tích 1 contract với 102 detector và trả về 3 kết quả:
 
 ## Thuộc tính on-chain và off-chain
 
-| Thuộc tính | Lưu trữ / xử lý | Cách kiểm chứng |
-|---|---|---|
-| Địa chỉ creator, beneficiary, verifier | On-chain | Đọc `getCampaign`; contract kiểm tra đúng quyền khi gọi các hàm tương ứng. |
-| Campaign ID, target, deadline, tổng tiền nhận/rút và trạng thái campaign | On-chain | Đọc `getCampaign` và đối chiếu event giao dịch. |
-| Khoản donate, request giải ngân, trạng thái duyệt/rút | On-chain | Đọc request, event (`DonationReceived`, `DisbursementRequested`, `DisbursementApproved`, `FundsWithdrawn`) và transaction receipt. |
-| `metadataId` của campaign | On-chain | Đọc `getCampaign`; đây chỉ là nhãn/tham chiếu ngắn, không phải toàn bộ metadata. |
-| `evidenceCid` và `evidenceHash` | On-chain | Contract yêu cầu CID không rỗng và `evidenceHash == keccak256(bytes(evidenceCid))`. |
-| File chứng từ (PDF, PNG, JPG) | Off-chain: IPFS | Mở CID qua IPFS gateway; cần kiểm tra nội dung file ngoài blockchain. |
-| Mô tả dài, ảnh và metadata đầy đủ của campaign | Off-chain: IPFS hoặc database | Dùng `metadataId` để liên kết/tra cứu metadata đã công bố. |
-| Giao diện, lựa chọn file và quá trình upload | Off-chain: frontend/API Pinata | Kiểm tra UI, phản hồi upload và CID được trả về trước khi gửi transaction. |
-
-> Contract chỉ ràng buộc hash của **chuỗi CID**; việc đánh giá nội dung chứng từ và mức độ hợp lệ của nó vẫn là trách nhiệm off-chain của verifier.
+| On-chain | Off-chain |
+|---|---|
+| `campaignId` | File chứng từ |
+| `creator` | Nội dung chứng từ |
+| `beneficiary` | |
+| `verifier` | |
+| `targetAmount` | |
+| `deadline` | |
+| `totalRaised` | |
+| `totalWithdrawn` | |
+| `status` | |
+| `metadataId` | |
+| `donations` | |
+| `evidenceCid` | |
+| `evidenceHash` | |
+| `disbursementRequests` | |
 
 ## V2 blocked action (local test)
 
