@@ -33,4 +33,4 @@ Verifier được tổ chức chỉ định trong form tạo campaign. Địa ch
 
 - Không bao giờ thêm private key vào frontend hoặc biến `NEXT_PUBLIC_*`.
 - RPC endpoint là public client configuration; giới hạn allowed origins trong Alchemy Dashboard.
-- Contract lưu `metadataId`, CID IPFS và `evidenceHash`; tên dài, mô tả và ảnh campaign vẫn cần dùng IPFS hoặc database công khai.
+- Contract lưu `metadataId`, CID IPFS và `evidenceHash`.

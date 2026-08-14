@@ -8,8 +8,6 @@ import { crowdfundingAbi, crowdfundingAddress, isContractConfigured } from "@/li
 
 export default function CreateCampaignPage() {
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
   const [beneficiary, setBeneficiary] = useState("");
   const [verifier, setVerifier] = useState("");
   const [target, setTarget] = useState("0.1");
@@ -44,9 +42,6 @@ export default function CreateCampaignPage() {
       <div className="form-intro"><p className="eyebrow">CAMPAIGN MỚI</p><h1>Tạo một lời kêu gọi<br />đáng tin cậy.</h1><p>Ví kết nối là tổ chức tạo campaign. Chọn verifier độc lập cho campaign này; địa chỉ đó được khóa khi tạo và chỉ verifier mới được duyệt giải ngân.</p></div>
       <form className="form-card" onSubmit={submit}>
         <label>Tên chiến dịch<input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Ví dụ: Hỗ trợ thư viện vùng cao" /></label>
-        <label>Nội dung mô tả<textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả mục đích quyên góp…" /></label>
-        <label>Hình ảnh (URL)<input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} type="url" placeholder="https://…" /></label>
-        <div className="notice">Tên, mô tả và hình ảnh chưa thể lưu hoàn chỉnh trong contract hiện tại; on-chain chỉ lưu <code>metadataId</code> (đang dùng tên chiến dịch). Dùng IPFS/database để lưu metadata công khai.</div>
         <label>Số ETH mục tiêu<input value={target} onChange={(e) => setTarget(e.target.value)} type="number" min="0.000001" step="0.001" required /></label>
         <label>Ngày kết thúc<input value={deadline} onChange={(e) => setDeadline(e.target.value)} type="datetime-local" required /></label>
         <label>Địa chỉ ví thụ hưởng<input value={beneficiary} onChange={(e) => setBeneficiary(e.target.value)} placeholder="0x…" required /></label>
