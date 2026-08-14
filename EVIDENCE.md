@@ -1,7 +1,5 @@
 # Evidence — security scan and deployment status
 
-> **V2 has not yet been deployed to Sepolia.** Add on-chain evidence only after V2 is deployed and verified: deployment, evidence upload, request creation, approval, and withdrawal.
-
 ## Phạm vi quét
 
 - Contract: `SMARTCONTRACT/Smartcontract.sol`
