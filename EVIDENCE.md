@@ -1,6 +1,6 @@
-# Slither security-scan evidence
+# Evidence — security scan and deployment status
 
-> **V2 deployment pending:** the Sepolia address recorded below is contract V1 and does not contain `evidenceCid`. The V2 source has passed 13 Hardhat tests locally, including empty-CID and CID/hash-mismatch reverts. After deploying V2, replace the V1 address and transaction evidence below with the V2 deployment, verification, upload, approval, and withdrawal transaction links.
+> **V2 has not yet been deployed to Sepolia.** Add on-chain evidence only after V2 is deployed and verified: deployment, evidence upload, request creation, approval, and withdrawal.
 
 ## Phạm vi quét
 
@@ -21,15 +21,15 @@ slither SMARTCONTRACT/Smartcontract.sol \
 
 Slither phân tích 1 contract với 102 detector và trả về 3 kết quả:
 
-1. **Timestamp dependence** — `createCampaign`, dòng 117
+1. **Timestamp dependence** — `createCampaign`, dòng 119
 
    `deadline > block.timestamp` được dùng để kiểm tra deadline trong tương lai.
 
-2. **Timestamp dependence** — `donate`, dòng 148
+2. **Timestamp dependence** — `donate`, dòng 150
 
    `block.timestamp <= campaign.deadline` được dùng để kiểm tra campaign còn hạn nhận quyên góp.
 
-3. **Low-level call** — `withdraw`, dòng 258
+3. **Low-level call** — `withdraw`, dòng 271
 
    Contract chuyển ETH bằng `campaign.beneficiary.call{value: request.amount}("")`.
 
@@ -39,35 +39,52 @@ Slither phân tích 1 contract với 102 detector và trả về 3 kết quả:
 - Low-level call là cách phù hợp để chuyển ETH đến beneficiary. Hàm `withdraw` đã cập nhật trạng thái trước khi gọi ra ngoài và có `nonReentrant`, giúp giảm rủi ro reentrancy. Cảnh báo vẫn cần được giữ lại làm bằng chứng kiểm tra bảo mật.
 
 > Mã thoát 255 của Slither có nghĩa là tool tìm thấy cảnh báo; không đồng nghĩa quá trình quét thất bại.
-# On-chain evidence — Sepolia
 
-- Network: Sepolia Testnet
-- Chain ID: 11155111
-- Contract address: `0xBEcE6BC5d46A7C1BC37859A49c2994eb2274fcD6`
-- Deployment transaction:
-  https://sepolia.etherscan.io/address/0xbece6bc5d46a7c1bc37859a49c2994eb2274fcd6
+## V2 local verification
 
-## Happy path: donation and verified disbursement
+- Unit tests: [`report-test.txt`](report-test.txt) — 13/13 passing.
+- Relevant V2 checks include a required non-empty `evidenceCid` and `keccak256(bytes(evidenceCid)) == evidenceHash` in `createDisbursementRequest`.
+- These local results do not replace on-chain V2 evidence.
 
-| Step | Actor | Action | Transaction | Verified result |
-|---|---|---|---|---|
-| 1 | Creator | Create campaign | [0x75e596a6acdfd8262f5606385bf8a1ec5032cf3927291fee42773cee583dd822](https://sepolia.etherscan.io/tx/0x75e596a6acdfd8262f5606385bf8a1ec5032cf3927291fee42773cee583dd822) | `CampaignCreated`, campaign ID = 0 |
-| 2 | Donor | Donate 0.001001 ETH | [0xab74f12ba6b17db2d5f98d58c52052f133645fb9302df69653dd6bb54579e3f5](https://sepolia.etherscan.io/tx/0xab74f12ba6b17db2d5f98d58c52052f133645fb9302df69653dd6bb54579e3f5) | `DonationReceived`; `totalRaised` increased |
-| 3 | Beneficiary | Create disbursement request | [0x0960c14b11820b9f982bdccb73613344f7da5af7ecdee15e6767cc9baeb69f77](https://sepolia.etherscan.io/tx/0x0960c14b11820b9f982bdccb73613344f7da5af7ecdee15e6767cc9baeb69f77) | Request status = `Pending` |
-| 4 | Verifier | Approve request | [0xc1b72e47e56476b2922d4d8ed263d3617f3c9c575c7a7852051b43f48d0a9687](https://sepolia.etherscan.io/tx/0xc1b72e47e56476b2922d4d8ed263d3617f3c9c575c7a7852051b43f48d0a9687) | Request status = `Approved` |
-| 5 | Beneficiary | Withdraw approved amount | [0xe17962d4c8dc27a9936984b40437477cc1eb153bf68c11da908861817809d900](https://sepolia.etherscan.io/tx/0xe17962d4c8dc27a9936984b40437477cc1eb153bf68c11da908861817809d900#eventlog) | `FundsWithDraw`; beneficiary received ETH |
+## Bảng evidence on-chain — V2
 
-## Blocked action
+> Điền các liên kết giao dịch sau khi V2 được deploy lên Sepolia. Không dùng dữ liệu từ V1.
+
+| Bước | Actor | Hành động | Giao dịch | Kết quả cần xác minh | Trạng thái |
+|---|---|---|---|---|---|
+| 1 | Deployer | Deploy và verify V2 | Chưa có | Địa chỉ contract, bytecode/source đã verify | Chờ deploy |
+| 2 | Creator | `createCampaign` | Chưa có | `CampaignCreated`, campaign ID và các role | Chờ giao dịch |
+| 3 | Donor | `donate` | Chưa có | `DonationReceived`, `totalRaised` tăng | Chờ giao dịch |
+| 4 | Beneficiary | Upload chứng từ, rồi gọi `createDisbursementRequest` | Chưa có | `DisbursementRequested`, CID và hash được lưu on-chain | Chờ giao dịch |
+| 5 | Verifier | `approveDisbursement` | Chưa có | `DisbursementApproved`, request chuyển sang `Approved` | Chờ giao dịch |
+| 6 | Beneficiary | `withdraw` | Chưa có | `FundsWithdrawn`, request chuyển sang `Withdrawn` và beneficiary nhận ETH | Chờ giao dịch |
+
+## Thuộc tính on-chain và off-chain
+
+| Thuộc tính | Lưu trữ / xử lý | Cách kiểm chứng |
+|---|---|---|
+| Địa chỉ creator, beneficiary, verifier | On-chain | Đọc `getCampaign`; contract kiểm tra đúng quyền khi gọi các hàm tương ứng. |
+| Campaign ID, target, deadline, tổng tiền nhận/rút và trạng thái campaign | On-chain | Đọc `getCampaign` và đối chiếu event giao dịch. |
+| Khoản donate, request giải ngân, trạng thái duyệt/rút | On-chain | Đọc request, event (`DonationReceived`, `DisbursementRequested`, `DisbursementApproved`, `FundsWithdrawn`) và transaction receipt. |
+| `metadataId` của campaign | On-chain | Đọc `getCampaign`; đây chỉ là nhãn/tham chiếu ngắn, không phải toàn bộ metadata. |
+| `evidenceCid` và `evidenceHash` | On-chain | Contract yêu cầu CID không rỗng và `evidenceHash == keccak256(bytes(evidenceCid))`. |
+| File chứng từ (PDF, PNG, JPG) | Off-chain: IPFS | Mở CID qua IPFS gateway; cần kiểm tra nội dung file ngoài blockchain. |
+| Mô tả dài, ảnh và metadata đầy đủ của campaign | Off-chain: IPFS hoặc database | Dùng `metadataId` để liên kết/tra cứu metadata đã công bố. |
+| Giao diện, lựa chọn file và quá trình upload | Off-chain: frontend/API Pinata | Kiểm tra UI, phản hồi upload và CID được trả về trước khi gửi transaction. |
+
+> Contract chỉ ràng buộc hash của **chuỗi CID**; việc đánh giá nội dung chứng từ và mức độ hợp lệ của nó vẫn là trách nhiệm off-chain của verifier.
+
+## V2 blocked action (local test)
 
 - Actor: Donor
 - Attempted action: call `withdraw(...)`
 - Expected result: reverted because only the campaign beneficiary can withdraw an approved request.
-- Evidence: screenshot `evidence/blocked-withdraw.png` and unit-test output in `report-test.txt`.
+- Evidence: TC-10 in [`report-test.txt`](report-test.txt) verifies this revert. No on-chain V2 transaction or screenshot is currently recorded.
 
 ## UI-to-chain mapping
 
 - “Tạo chiến dịch” → `createCampaign`
 - “Ủng hộ” → `donate`
-- “Tạo yêu cầu giải ngân” → `createDisbursement`
-- “Duyệt yêu cầu” → `approveDisbursementRequest`
+- “Tạo yêu cầu giải ngân” → `createDisbursementRequest`
+- “Duyệt yêu cầu” → `approveDisbursement`
 - “Rút tiền” → `withdraw`

@@ -3,21 +3,16 @@ Multiple frameworks detected: solc, Solc-json. Using solc (highest priority). Us
 '/home/linh/BLOCKCHAIN/.venv-slither/.solc-select/artifacts/solc-0.8.24/solc-0.8.24 SMARTCONTRACT/Smartcontract.sol --combined-json abi,ast,bin,bin-runtime,srcmap,srcmap-runtime,userdoc,devdoc,hashes --allow-paths .,/home/linh/BLOCKCHAIN/SMARTCONTRACT' running
 INFO:Detectors:
 Detector: timestamp
-Crowdfunding.createCampaign(address,address,uint256,uint256,string) (SMARTCONTRACT/Smartcontract.sol#103-142) uses timestamp for comparisons
+Crowdfunding.createCampaign(address,address,uint256,uint256,string) (SMARTCONTRACT/Smartcontract.sol#105-144) uses timestamp for comparisons
 	Dangerous comparisons:
-	- require(bool,string)(deadline > block.timestamp,Deadline must be in the future) (SMARTCONTRACT/Smartcontract.sol#117)
-Crowdfunding.donate(uint256) (SMARTCONTRACT/Smartcontract.sol#145-155) uses timestamp for comparisons
+	- require(bool,string)(deadline > block.timestamp,Deadline must be in the future) (SMARTCONTRACT/Smartcontract.sol#119)
+Crowdfunding.donate(uint256) (SMARTCONTRACT/Smartcontract.sol#147-157) uses timestamp for comparisons
 	Dangerous comparisons:
-	- require(bool,string)(block.timestamp <= campaign.deadline,Campaign deadline passed) (SMARTCONTRACT/Smartcontract.sol#148)
+	- require(bool,string)(block.timestamp <= campaign.deadline,Campaign deadline passed) (SMARTCONTRACT/Smartcontract.sol#150)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
 INFO:Detectors:
 Detector: low-level-calls
-Low level call in Crowdfunding.withdraw(uint256,uint256) (SMARTCONTRACT/Smartcontract.sol#241-262):
-	- (sent,None) = campaign.beneficiary.call{value: request.amount}() (SMARTCONTRACT/Smartcontract.sol#258)
+Low level call in Crowdfunding.withdraw(uint256,uint256) (SMARTCONTRACT/Smartcontract.sol#254-275):
+	- (sent,None) = campaign.beneficiary.call{value: request.amount}() (SMARTCONTRACT/Smartcontract.sol#271)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
 INFO:Slither:SMARTCONTRACT/Smartcontract.sol analyzed (1 contracts with 102 detectors), 3 result(s) found
-
-
-Slither có 3 cảnh báo:
-- 2 cảnh báo timestamp: chấp nhận được cho deadline.
-- 1 cảnh báo low-level call: đã giảm thiểu bằng CEI + nonReentrant + kiểm tra sent.
