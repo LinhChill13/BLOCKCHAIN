@@ -10,6 +10,12 @@ export function CampaignCard({ campaign }: { campaign: Campaign }) {
 
   return (
     <article className="campaign-card">
+      <div className={`campaign-cover campaign-cover-${Number(campaign.id % 4n)}`} aria-hidden="true">
+        <span className="cover-sun" />
+        <span className="cover-arc cover-arc-one" />
+        <span className="cover-arc cover-arc-two" />
+        <span className="cover-label">ON-CHAIN IMPACT</span>
+      </div>
       <div className="card-topline">
         <span>Campaign #{campaign.id.toString()}</span>
         <span className={`badge ${isClosed ? "badge-closed" : "badge-active"}`}>
