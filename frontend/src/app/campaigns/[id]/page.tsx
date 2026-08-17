@@ -4,7 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useParams } from "next/navigation";
 import { encodeFunctionData, formatEther, parseEther } from "viem";
-import { useAccount, usePublicClient, useReadContract, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { useAccount, usePublicClient, useReadContract, useSignMessage, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { SiteHeader } from "@/components/site-header";
 import {
   crowdfundingAbi, crowdfundingAddress, isContractConfigured, type Campaign, type DisbursementRequest
@@ -43,6 +43,7 @@ export default function CampaignDetailPage() {
   const campaign = data as unknown as Campaign | undefined;
   const request = requestData as unknown as DisbursementRequest | undefined;
   const { writeContract, data: hash, isPending, error: writeError } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
   const receipt = useWaitForTransactionReceipt({ hash });
 
   async function donate(event: FormEvent) {
@@ -97,6 +98,10 @@ export default function CampaignDetailPage() {
   async function createRequest(event: FormEvent) {
     event.preventDefault();
     setRequestError("");
+    if (!address) {
+      setRequestError("Hãy kết nối ví beneficiary trước.");
+      return;
+    }
     if (!isBeneficiary || activeRequestId > 0n || available <= 0n) {
       setRequestError("Campaign không còn tiền khả dụng để tạo yêu cầu giải ngân.");
       return;
@@ -124,7 +129,11 @@ export default function CampaignDetailPage() {
 
     try {
       setIsUploadingEvidence(true);
-      const uploaded = await uploadEvidenceFile(evidenceFile);
+      const uploaded = await uploadEvidenceFile(evidenceFile, {
+        campaignId,
+        address,
+        signMessage: (message) => signMessageAsync({ message }),
+      });
       setUploadedEvidence(uploaded);
       writeContract({
         address: crowdfundingAddress, abi: crowdfundingAbi, functionName: "createDisbursementRequest",
