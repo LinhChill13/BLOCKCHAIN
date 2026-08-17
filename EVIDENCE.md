@@ -40,9 +40,16 @@ Slither phân tích 1 contract với 102 detector và trả về 3 kết quả:
 
 ## V2 local verification
 
-- Unit tests: [`report-test.txt`](report-test.txt) — 13/13 passing.
+- Unit tests: [`report-test.txt`](report-test.txt) — 16/16 passing, including the local security scenarios below.
 - Relevant V2 checks include a required non-empty `evidenceCid` and `keccak256(bytes(evidenceCid)) == evidenceHash` in `createDisbursementRequest`.
 - These local results do not replace on-chain V2 evidence.
+
+## Kiểm thử bảo mật bổ sung (Hardhat local)
+
+- TC-14: Không thể gọi `withdraw()` lần hai cho cùng request; lời gọi thứ hai revert với `Request is not active`.
+- TC-15: `ReentrancyAttacker` đã thử re-enter khi nhận ETH; lời gọi lồng bị chặn, lời gọi ngoài chỉ rút đúng một lần.
+- TC-16: `RejectingBeneficiary` từ chối nhận ETH; toàn bộ giao dịch withdraw rollback và request vẫn `Approved`.
+- Invariant: các luồng donate và withdraw kiểm tra `totalWithdrawn <= totalRaised`; với fixture một campaign, số dư contract cũng luôn bằng `totalRaised - totalWithdrawn`.
 
 ## Bảng evidence on-chain — V2
 

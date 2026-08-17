@@ -10,6 +10,14 @@ const METADATA_ID = "campaign-001";
 const EVIDENCE_CID = "bafybeigdyrzt4evidence001";
 const EVIDENCE_HASH = ethers.keccak256(ethers.toUtf8Bytes(EVIDENCE_CID));
 
+async function expectAccountingInvariant(crowdfunding: any, campaignId: number) {
+  const campaign = await crowdfunding.getCampaign(campaignId);
+  const contractBalance = await ethers.provider.getBalance(await crowdfunding.getAddress());
+
+  expect(campaign.totalWithdrawn).to.be.lte(campaign.totalRaised);
+  expect(contractBalance).to.equal(campaign.totalRaised - campaign.totalWithdrawn);
+}
+
 async function deployCampaignFixture() {
   const [creator, beneficiary, donor, verifier, stranger] = await ethers.getSigners();
   const crowdfunding = await ethers.deployContract("Crowdfunding");
@@ -82,6 +90,7 @@ describe("Crowdfunding", function () {
       .to.emit(crowdfunding, "DonationReceived")
       .withArgs(0n, donor.address, DONATION_AMOUNT);
     expect((await crowdfunding.getCampaign(0)).totalRaised).to.equal(DONATION_AMOUNT);
+    await expectAccountingInvariant(crowdfunding, 0);
 
     await expect(crowdfunding.connect(donor).donate(0, { value: 0 })).to.be.revertedWith(
       "Donation must be greater than zero",
@@ -211,6 +220,7 @@ describe("Crowdfunding", function () {
     expect((await crowdfunding.getCampaign(0)).totalWithdrawn).to.equal(REQUEST_AMOUNT);
     expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(3n);
     expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(0n);
+    await expectAccountingInvariant(crowdfunding, 0);
   });
 
   it("TC-11: sau khi rút beneficiary có thể tạo request kế tiếp trong số dư còn lại", async function () {
@@ -259,5 +269,71 @@ describe("Crowdfunding", function () {
 
     await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
     expect(await crowdfunding.getDisbursementRequestCount(0)).to.equal(2n);
+  });
+
+  it("TC-14: không thể withdraw cùng request hai lần", async function () {
+    const { crowdfunding, beneficiary, verifier, fundCampaign } = await deployCampaignFixture();
+    await fundCampaign();
+    await crowdfunding.connect(beneficiary).createDisbursementRequest(0, REQUEST_AMOUNT, EVIDENCE_CID, EVIDENCE_HASH);
+    await crowdfunding.connect(verifier).approveDisbursement(0, 1);
+
+    await crowdfunding.connect(beneficiary).withdraw(0, 1);
+    await expect(crowdfunding.connect(beneficiary).withdraw(0, 1)).to.be.revertedWith("Request is not active");
+
+    await expectAccountingInvariant(crowdfunding, 0);
+  });
+
+  it("TC-15: chặn reentrancy khi beneficiary nhận ETH", async function () {
+    const [creator, verifier, donor] = await ethers.getSigners();
+    const crowdfunding = await ethers.deployContract("Crowdfunding");
+    const attacker = await ethers.deployContract("ReentrancyAttacker", [await crowdfunding.getAddress()]);
+    const latestBlock = await ethers.provider.getBlock("latest");
+    const deadline = BigInt(latestBlock!.timestamp + 3_600);
+    const amount = ethers.parseEther("0.25");
+    const cid = "ipfs://test-reentrancy";
+    const hash = ethers.keccak256(ethers.toUtf8Bytes(cid));
+
+    await crowdfunding
+      .connect(creator)
+      .createCampaign(await attacker.getAddress(), verifier.address, TARGET_AMOUNT, deadline, "reentrancy-test");
+    await crowdfunding.connect(donor).donate(0, { value: ethers.parseEther("1") });
+    await expectAccountingInvariant(crowdfunding, 0);
+    await attacker.connect(creator).createRequest(0, amount, cid, hash);
+    await crowdfunding.connect(verifier).approveDisbursement(0, 1);
+
+    await attacker.connect(creator).attack(0, 1);
+
+    expect(await attacker.reentryAttempted()).to.equal(true);
+    expect(await attacker.reentryBlocked()).to.equal(true);
+    expect(await attacker.reentrySucceeded()).to.equal(false);
+    expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(3n);
+    expect((await crowdfunding.getCampaign(0)).totalWithdrawn).to.equal(amount);
+    await expectAccountingInvariant(crowdfunding, 0);
+  });
+
+  it("TC-16: ETH transfer thất bại thì request vẫn Approved", async function () {
+    const [creator, verifier, donor] = await ethers.getSigners();
+    const crowdfunding = await ethers.deployContract("Crowdfunding");
+    const rejectingBeneficiary = await ethers.deployContract("RejectingBeneficiary", [await crowdfunding.getAddress()]);
+    const latestBlock = await ethers.provider.getBlock("latest");
+    const deadline = BigInt(latestBlock!.timestamp + 3_600);
+    const amount = ethers.parseEther("0.25");
+    const cid = "ipfs://test-reject-eth";
+    const hash = ethers.keccak256(ethers.toUtf8Bytes(cid));
+
+    await crowdfunding
+      .connect(creator)
+      .createCampaign(await rejectingBeneficiary.getAddress(), verifier.address, TARGET_AMOUNT, deadline, "reject-eth-test");
+    await crowdfunding.connect(donor).donate(0, { value: ethers.parseEther("1") });
+    await expectAccountingInvariant(crowdfunding, 0);
+    await rejectingBeneficiary.connect(creator).createRequest(0, amount, cid, hash);
+    await crowdfunding.connect(verifier).approveDisbursement(0, 1);
+
+    await expect(rejectingBeneficiary.connect(creator).withdraw(0, 1)).to.be.revertedWith("ETH transfer failed");
+
+    expect((await crowdfunding.getDisbursementRequest(0, 1)).status).to.equal(1n);
+    expect((await crowdfunding.getCampaign(0)).totalWithdrawn).to.equal(0n);
+    expect(await crowdfunding.getActiveDisbursementRequestId(0)).to.equal(1n);
+    await expectAccountingInvariant(crowdfunding, 0);
   });
 });

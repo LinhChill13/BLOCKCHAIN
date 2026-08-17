@@ -7,7 +7,7 @@
 > node scripts/sync-contract.mjs
 
 Synced SMARTCONTRACT/Smartcontract.sol to hardhat/contracts/Crowdfunding.sol
-No contracts to compile
+Compiled 1 Solidity file with solc 0.8.24 (evm target: shanghai)
 
 Running Solidity tests
 
@@ -29,10 +29,12 @@ Running Mocha tests
     ✔ TC-11: sau khi rút beneficiary có thể tạo request kế tiếp trong số dư còn lại
     ✔ TC-12: verifier có thể từ chối request pending và beneficiary tạo request mới
     ✔ TC-13: beneficiary có thể hủy request pending và tạo request mới
+    ✔ TC-14: không thể withdraw cùng request hai lần
+    ✔ TC-15: chặn reentrancy khi beneficiary nhận ETH
+    ✔ TC-16: ETH transfer thất bại thì request vẫn Approved
 
 
-  13 passing (223ms)
+  16 passing (304ms)
 
 
-13 passing (13 mocha)
-
+16 passing (16 mocha)
