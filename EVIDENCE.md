@@ -38,6 +38,23 @@ Slither phân tích 1 contract với 102 detector và trả về 3 kết quả:
 
 > Mã thoát 255 của Slither có nghĩa là tool tìm thấy cảnh báo; không đồng nghĩa quá trình quét thất bại.
 
+## Quét secrets — Gitleaks
+
+- Thời điểm quét: 2026-08-18 (giờ địa phương)
+- Công cụ: Gitleaks 8.29.1
+- Lịch sử Git: 28 commit, **không phát hiện secret** (mã thoát `0`).
+- `frontend/.env.example`: không có secret.
+- Working tree: 13 finding (mã thoát `1`): 1 JWT mới trong `frontend/.env.local` (Git-ignored) và 12 lần khớp trong `frontend/.next/**` — key/cache Next.js sinh khi build, không phải 12 credential độc lập.
+
+Không ghi giá trị credential vào repository. Giữ `.env.local` và `.next` ngoài Git; key trong `.next` tự sinh lại khi build, không cần rotate riêng. Nếu JWT cũ từng bị lộ, cần thu hồi/rotate.
+
+Lệnh tái lập (báo cáo che 100% giá trị secret nếu có):
+
+```bash
+gitleaks git --log-opts="--all" --redact=100 --report-format json --report-path gitleaks-report.json --no-banner
+gitleaks dir . --redact=100 --report-format json --report-path gitleaks-working-tree-report.json --no-banner
+```
+
 ## V2 local verification
 
 - Unit tests: [`report-test.txt`](report-test.txt) — 16/16 passing, including the local security scenarios below.
@@ -57,12 +74,11 @@ Contract address: 0x57d9A07100CeF698EE29c22d8aFB780de45F252A
 
 | Bước | Actor | Hành động | Giao dịch | Kết quả cần xác minh |
 |---|---|---|---|---|
-| 1 | Deployer | Deploy và verify V2 | https://sepolia.etherscan.io/tx/0x0bbd55adfd3004c3793ea1ab2354babc5082f885c6566f12ecd8182385bda849  | Địa chỉ contract, bytecode/source đã verify | 
-| 2 | Creator | `createCampaign` | https://sepolia.etherscan.io/tx/0x0bbd55adfd3004c3793ea1ab2354babc5082f885c6566f12ecd8182385bda849 | `CampaignCreated`, campaign ID và các role | 
-| 3 | Donor | `donate` | https://sepolia.etherscan.io/tx/0x55882d8f8aae3c82df91c5d49a0a29cc597ee696351da7bb3634077e2cb71df7 | `DonationReceived`, `totalRaised` tăng | Chờ giao dịch |
-| 4 | Beneficiary | Upload chứng từ, rồi gọi `createDisbursementRequest` | https://sepolia.etherscan.io/tx/0x36ab2040066cec4c89539635f4e09965375b42117b2d3ccc4598bf790a730fa3 | `DisbursementRequested`, CID và hash được lưu on-chain | 
-| 5 | Verifier | `approveDisbursement` | https://sepolia.etherscan.io/tx/0x5a4040a313f3f92cde68ac5610c41d8f7a38ee4f4452724346ed9dac35afbe33 | `DisbursementApproved`, request chuyển sang `Approved` | 
-| 6 | Beneficiary | `withdraw` | https://sepolia.etherscan.io/tx/0x36ac03482d6bf8dcb7ba7f9923b9b5c3376e47be6c3ac11d912845270d8eedad | `FundsWithdrawn`, request chuyển sang `Withdrawn` và beneficiary nhận ETH | 
+| 1 | Creator | `createCampaign` | https://sepolia.etherscan.io/tx/0x0bbd55adfd3004c3793ea1ab2354babc5082f885c6566f12ecd8182385bda849 | `CampaignCreated`, campaign ID và các role | 
+| 2 | Donor | `donate` | https://sepolia.etherscan.io/tx/0x55882d8f8aae3c82df91c5d49a0a29cc597ee696351da7bb3634077e2cb71df7 | `DonationReceived`, `totalRaised` tăng | Chờ giao dịch |
+| 3 | Beneficiary | Upload chứng từ, rồi gọi `createDisbursementRequest` | https://sepolia.etherscan.io/tx/0x36ab2040066cec4c89539635f4e09965375b42117b2d3ccc4598bf790a730fa3 | `DisbursementRequested`, CID và hash được lưu on-chain | 
+| 4 | Verifier | `approveDisbursement` | https://sepolia.etherscan.io/tx/0x5a4040a313f3f92cde68ac5610c41d8f7a38ee4f4452724346ed9dac35afbe33 | `DisbursementApproved`, request chuyển sang `Approved` | 
+| 5 | Beneficiary | `withdraw` | https://sepolia.etherscan.io/tx/0x36ac03482d6bf8dcb7ba7f9923b9b5c3376e47be6c3ac11d912845270d8eedad | `FundsWithdrawn`, request chuyển sang `Withdrawn` và beneficiary nhận ETH | 
 
 ## Thuộc tính on-chain và off-chain
 
