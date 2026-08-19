@@ -85,7 +85,19 @@ npm ci
 npm run dev
 ```
 
-Sau khi chạy frontend, mở <http://localhost:3000>. Trước khi dùng các chức năng kết nối Sepolia/IPFS, điền các biến cần thiết vào `frontend/.env.local`; xem README trong từng thư mục để deploy và cấu hình đầy đủ.
+Sau khi chạy frontend, mở <http://localhost:3000>. Frontend hiện được cấu hình để dùng **Ethereum Sepolia**; trước khi dùng, điền các biến cần thiết vào `frontend/.env.local`:
+
+- `NEXT_PUBLIC_CROWDFUNDING_ADDRESS`: địa chỉ contract đã deploy trên Sepolia.
+- `NEXT_PUBLIC_SEPOLIA_RPC_URL`: HTTPS RPC endpoint cho Sepolia.
+- `NEXT_PUBLIC_IPFS_GATEWAY`: IPFS gateway để mở chứng từ từ CID.
+- `PINATA_JWT`: JWT server-only của Pinata. Không dùng tiền tố `NEXT_PUBLIC_`, không commit giá trị này.
+- `UPSTASH_REDIS_REST_URL` và `UPSTASH_REDIS_REST_TOKEN`: thông tin Redis REST server-only của Upstash, bắt buộc cho rate limit và chống dùng lại nonce khi xin URL upload Pinata.
+
+API upload chỉ cấp URL upload Pinata tạm thời sau khi beneficiary ký một thông điệp bằng ví Sepolia. Thông điệp gắn với origin, campaign ID, địa chỉ ví, nonce một lần, thời hạn, và metadata của file; server xác minh chữ ký và xác nhận ví đó đúng là beneficiary on-chain. Upstash áp dụng giới hạn theo IP/ví và lưu nonce đã dùng, rồi server mới dùng `PINATA_JWT` để xin URL upload có chữ ký từ Pinata. JWT không bao giờ được gửi xuống trình duyệt.
+
+Các lệnh `--network localhost` và hướng dẫn seed data chỉ dành cho contract Hardhat local. Chúng chỉ dùng được cùng frontend khi frontend cũng được sửa/cấu hình để hỗ trợ chain local, RPC local và địa chỉ contract local. Với mã frontend hiện tại, hãy dùng contract, ví và RPC trên Sepolia.
+
+Xem README trong từng thư mục để deploy và cấu hình đầy đủ.
 
 Kiểm tra nhanh môi trường trên mọi hệ điều hành:
 
