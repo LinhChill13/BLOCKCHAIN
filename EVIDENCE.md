@@ -75,7 +75,7 @@ Contract address: 0x57d9A07100CeF698EE29c22d8aFB780de45F252A
 | Bước | Actor | Hành động | Giao dịch | Kết quả cần xác minh |
 |---|---|---|---|---|
 | 1 | Creator | `createCampaign` | https://sepolia.etherscan.io/tx/0x0bbd55adfd3004c3793ea1ab2354babc5082f885c6566f12ecd8182385bda849 | `CampaignCreated`, campaign ID và các role | 
-| 2 | Donor | `donate` | https://sepolia.etherscan.io/tx/0x55882d8f8aae3c82df91c5d49a0a29cc597ee696351da7bb3634077e2cb71df7 | `DonationReceived`, `totalRaised` tăng | Chờ giao dịch |
+| 2 | Donor | `donate` | https://sepolia.etherscan.io/tx/0x55882d8f8aae3c82df91c5d49a0a29cc597ee696351da7bb3634077e2cb71df7 | `DonationReceived`, `totalRaised` tăng | 
 | 3 | Beneficiary | Upload chứng từ, rồi gọi `createDisbursementRequest` | https://sepolia.etherscan.io/tx/0x36ab2040066cec4c89539635f4e09965375b42117b2d3ccc4598bf790a730fa3 | `DisbursementRequested`, CID và hash được lưu on-chain | 
 | 4 | Verifier | `approveDisbursement` | https://sepolia.etherscan.io/tx/0x5a4040a313f3f92cde68ac5610c41d8f7a38ee4f4452724346ed9dac35afbe33 | `DisbursementApproved`, request chuyển sang `Approved` | 
 | 5 | Beneficiary | `withdraw` | https://sepolia.etherscan.io/tx/0x36ac03482d6bf8dcb7ba7f9923b9b5c3376e47be6c3ac11d912845270d8eedad | `FundsWithdrawn`, request chuyển sang `Withdrawn` và beneficiary nhận ETH | 
