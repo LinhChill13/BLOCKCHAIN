@@ -80,24 +80,18 @@ Contract address: 0x57d9A07100CeF698EE29c22d8aFB780de45F252A
 | 4 | Verifier | `approveDisbursement` | https://sepolia.etherscan.io/tx/0x5a4040a313f3f92cde68ac5610c41d8f7a38ee4f4452724346ed9dac35afbe33 | `DisbursementApproved`, request chuyển sang `Approved` | 
 | 5 | Beneficiary | `withdraw` | https://sepolia.etherscan.io/tx/0x36ac03482d6bf8dcb7ba7f9923b9b5c3376e47be6c3ac11d912845270d8eedad | `FundsWithdrawn`, request chuyển sang `Withdrawn` và beneficiary nhận ETH | 
 
-## Thuộc tính on-chain và off-chain
+## Bảng phân tích thuộc tính on-chain/off-chain
 
-| On-chain | Off-chain |
-|---|---|
-| `campaignId` | File chứng từ |
-| `creator` | Nội dung chứng từ |
-| `beneficiary` | |
-| `verifier` | |
-| `targetAmount` | |
-| `deadline` | |
-| `totalRaised` | |
-| `totalWithdrawn` | |
-| `status` | |
-| `metadataId` | |
-| `donations` | |
-| `evidenceCid` | |
-| `evidenceHash` | |
-| `disbursementRequests` | |
+| Tên dữ liệu/logic | Vị trí | Lý do | Chủ thể ghi | Chủ thể đọc/xác minh | Bảo vệ | Retention/Cập nhật |
+|---|---|---|---|---|---|---|
+| Campaign và role: `campaignId`, `creator`, `beneficiary`, `verifier`, `targetAmount`, `deadline`, `status`, `metadataId` | On-chain | Công khai quyền và điều kiện campaign. | Creator và contract. | Contract, các role, công chúng. | Kiểm tra địa chỉ, role, target và deadline. | Role/điều kiện bất biến; status chỉ chuyển sang `Closed`. |
+| Đóng góp và số dư: `donations`, `totalRaised`, `totalWithdrawn` | On-chain | Minh bạch dòng tiền. | Donor và contract. | Contract, donor, công chúng. | Kiểm tra trạng thái, deadline, số tiền và reentrancy. | Cộng dồn, không xóa; chưa hỗ trợ refund. |
+| Yêu cầu giải ngân: `amount`, `status`, request ID | On-chain | Ghi nhận quy trình duyệt và rút tiền. | Beneficiary, verifier và contract. | Contract, các role, công chúng. | Phân quyền và chỉ một request active/campaign. | Lưu vĩnh viễn; trạng thái chuyển một chiều. |
+| `evidenceCid`, `evidenceHash` | On-chain | Cam kết liên kết chứng từ để kiểm toán. | Beneficiary. | Contract, verifier, công chúng. | `evidenceHash = keccak256(bytes(CID))`. | Bất biến theo request; sửa phải tạo request mới. |
+| File chứng từ PDF/PNG/JPG | Off-chain — IPFS/Pinata | Giảm chi phí và dữ liệu on-chain. | Beneficiary upload; Pinata pin. | Verifier và người biết CID. | CID theo nội dung; API kiểm tra chữ ký, loại và kích thước file. | File mới tạo CID mới; khả dụng phụ thuộc pin. |
+| Xác thực upload, nonce và rate limit | Hybrid | Xác minh beneficiary và chống lạm dụng API. | Beneficiary ký; API ghi Upstash. | API đối chiếu chữ ký và role on-chain. | Chữ ký ví, nonce một lần, thời hạn và rate limit. | Payload tối đa 5 phút; nonce TTL 300 giây; URL upload 60 giây. |
+
+`Hybrid` nghĩa là dữ liệu hoặc thao tác nằm ngoài chuỗi nhưng kết quả xác minh phụ thuộc trạng thái on-chain.
 
 ## V2 blocked action (local test)
 
